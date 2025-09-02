@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: faulty_app
+  name: faultyapp
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: faulty_app
+      app: faultyapp
   template:
     metadata:
       labels:
-        app: faulty_app
+        app: faultyapp
     spec:
       containers:
-        - name: faulty_app
+        - name: faultyapp
           image: faulty_app:latest
           ports:
             - containerPort: 5000

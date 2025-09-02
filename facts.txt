@@ -1,0 +1,6 @@
+
+
+Everytime theres an event theres a new state using InMemorySessionService
+
+Agent can be state aware by reading from   ToolContext 
+Updating the root agent to use this stateful tool and configuring it with an output_key to automatically save its final weather report to the session state.
