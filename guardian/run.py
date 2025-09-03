@@ -21,7 +21,7 @@ def get_runner(root_agent: Agent, session_service: InMemorySessionService ) -> R
     """Return a Runner tied to a specific session service."""
     return Runner(
         agent=root_agent,
-        app_name=APP_NAME,
+        app_name=APP_NAME, 
         session_service=session_service
     )
 
@@ -78,7 +78,8 @@ async def run(agent : Agent, payload):
     """
     session_service = InMemorySessionService()
     runner = get_runner(agent,session_service)
-
+    #TODO make session creation time base, this shoould be an arg and not created here.
+    #TODO new session every ten minute , or new session for each stream.
     user_id, session_id = await create_new_session(session_service)
 
     try:
