@@ -5,7 +5,7 @@ from kubernetes import client, config, watch
 import asyncio
 from guardian.run import run
 
-from const import logger, agent
+from const import logger,  orchestrator_agent
 #Create global agent
 
 def getconfig()-> dict:
@@ -30,7 +30,7 @@ async def stream_pods():
         # Lets call the ai directly here 
         payload["event"] = event
         # ai_response = asyncio.run(run(agent=agent, payload=f"{payload}"))
-        ai_response = await run(agent=agent, payload=f"{payload}")
+        ai_response = await run(agent=orchestrator_agent, payload=f"{payload}", output_key="orchestrator_response")
 
         logger.info("Autonomous System Started")
         print(ai_response)

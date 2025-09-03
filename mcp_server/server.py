@@ -14,7 +14,8 @@ import mcp.server.stdio
 # ADK Tool Imports
 from google.adk.tools.function_tool import FunctionTool
 from google.adk.tools.mcp_tool.conversion_utils import adk_to_mcp_tool_type
-from tools.test import get_devs_name  # Your callable
+from tools.custom_tools import get_devs_name , filesystem # Your callable 
+
 
 # --- Logging Setup ---
 logging.basicConfig(
@@ -29,14 +30,20 @@ load_dotenv()
 
 # --- Prepare ADK Tools ---
 logger.info("Initializing ADK tools...")
-get_dev_name_tool = FunctionTool(get_devs_name)
-tools = {"get_devs_name": get_dev_name_tool}
+#TODO theres an option to change the allowed files_directory here , default is cwd/app
+f = filesystem()
+
+
+tools = {
+    "get_devs_name": FunctionTool(get_devs_name),
+    "get_files_info": FunctionTool(f.get_files_info),
+    "get_file_content": FunctionTool(f.get_file_content)
+    }
 logger.info(f"ADK tools {list(tools.keys())} initialized and ready to be exposed via MCP.")
 
 # --- MCP Server Setup ---
 logger.info("Creating MCP Server instance...")
 app = Server("adk-tools-exposing-mcp-server")
-
 
 @app.list_tools()
 async def list_mcp_tools() -> list[mcp_types.Tool]:

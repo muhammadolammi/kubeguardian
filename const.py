@@ -1,7 +1,7 @@
 import os
 import logging
 import sys
-from guardian.agent import get_orchestrator_agent
+from guardian.agent import get_orchestrator_agent, get_chat_agent
 
 
 
@@ -14,5 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-#ONE agent for all session
-agent = get_orchestrator_agent()
+#agents for all session
+orchestrator_agent = get_orchestrator_agent()
+chat_agent = get_chat_agent()
+

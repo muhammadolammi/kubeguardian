@@ -1,7 +1,7 @@
 import asyncio
 from stream import stream_pods 
 import argparse
-from const import logger, agent
+from const import  chat_agent, orchestrator_agent
 from guardian.run import run
 
 
@@ -36,10 +36,10 @@ def start_chat_mode(agent):
 
             payload_config["user_message"] = user_input
             
-            ai_response = asyncio.run(run(agent, str(payload_config)))
+            ai_response = asyncio.run(run(agent, f"{payload_config}", "chat_response"))
             
             print("\nAgent:")
-            print(ai_response)
+            print(ai_response or "⚠️ No response generated")
             print("-" * 50)
 
         except KeyboardInterrupt:
@@ -47,10 +47,10 @@ def start_chat_mode(agent):
             break
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--chat-mode", action="store_true", help="Enable chat mode", required=True)
+    parser.add_argument("--chat-mode", action="store_true", help="Enable chat mode")
     args = parser.parse_args()
     if args.chat_mode:
-       start_chat_mode(agent=agent)
+       start_chat_mode(agent=chat_agent)
     else:
         ioloop = asyncio.get_event_loop()
         ioloop.create_task(stream_pods())

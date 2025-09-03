@@ -11,16 +11,14 @@ custom_mcp_toolset = MCPToolset(
                     ],
                     env={},
                 ),
+                 timeout=30.0,
             ),
             # Optional: Filter which tools from the MCP server are exposed
-            #TODO add the neccasary tool needed eg DATADOG alert
             # tool_filter=['get_dev_name_tool', 'read_file']
-            # timeout=30.0
+           
         )
-
-
-observer_mcp_toolset = MCPToolset(
-            connection_params=StdioConnectionParams(
+email_mcp_tool = MCPToolset(
+             connection_params=StdioConnectionParams(
                 server_params = StdioServerParameters(
                     command='python',
                     args=[
@@ -30,10 +28,9 @@ observer_mcp_toolset = MCPToolset(
                 ),
             ),
             # Optional: Filter which tools from the MCP server are exposed
-            #TODO add the neccasary tool needed eg DATADOG alert
-            tool_filter=['Get_Metrics', ]
+            tool_filter=['send_mail', ]
+            # timeout=30.0
         )
-
 
 kubectl_ai_mcp_toolset = MCPToolset(
             connection_params=StdioConnectionParams(

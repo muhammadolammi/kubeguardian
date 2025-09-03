@@ -26,7 +26,7 @@ def get_runner(root_agent: Agent, session_service: InMemorySessionService ) -> R
     )
 
 
-async def call_agent_async( runner: Runner, user_id: str, session_id: str,payload):
+async def call_agent_async( runner: Runner, user_id: str, session_id: str,message:str, output_key:str):
     """
     Executes the agent and prints its final response for the given session.
     """
@@ -34,7 +34,7 @@ async def call_agent_async( runner: Runner, user_id: str, session_id: str,payloa
      # Prepare the event message for the agent
     new_message = types.Content(
         role="user",
-        parts=[types.Part(text=payload)]
+        parts=[types.Part(text=message)]
     )
 
     logger.info(f"🔹 Running agent for user: {user_id}, session: {session_id}")
@@ -43,6 +43,8 @@ async def call_agent_async( runner: Runner, user_id: str, session_id: str,payloa
         # logger.debug(f"Event: Author={event.author}, Final={event.is_final_response()}, Content={event.content}")
 
         if event.is_final_response():
+            # if event.output and output_key in event.output:
+            #     final_response_text = event.output[output_key]
             if event.content and event.content.parts:
                 final_response_text = event.content.parts[0].text
             elif event.actions and event.actions.escalate:
@@ -71,7 +73,7 @@ async def create_new_session(session_service: InMemorySessionService, ):
     return user_id, session_id
 
 
-async def run(agent : Agent, payload):
+async def run(agent : Agent, message:str, output_key:str):
     """
     Main entrypoint: Creates a new session, runs the agent, and tears down cleanly.
     Each call to `run()` starts a new isolated session.
@@ -83,7 +85,7 @@ async def run(agent : Agent, payload):
     user_id, session_id = await create_new_session(session_service)
 
     try:
-        response = await call_agent_async(runner, user_id, session_id, payload)
+        response = await call_agent_async(runner, user_id, session_id, message, output_key)
         return response
     except Exception as e:
         logger.error(f"❌ Agent run failed: {e}")
