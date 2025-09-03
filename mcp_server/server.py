@@ -1,10 +1,10 @@
+import os
+
+
 import asyncio
 import json
-import os
-import sys
-import logging
 from dotenv import load_dotenv
-
+import logging
 # MCP Imports
 from mcp import types as mcp_types
 from mcp.server.lowlevel import Server, NotificationOptions
@@ -15,18 +15,28 @@ import mcp.server.stdio
 from google.adk.tools.function_tool import FunctionTool
 from google.adk.tools.mcp_tool.conversion_utils import adk_to_mcp_tool_type
 from tools.custom_tools import get_devs_name , filesystem # Your callable 
+from const import logger
 
 
-# --- Logging Setup ---
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    stream=sys.stderr,  # ✅ Logs to stderr
-)
-logger = logging.getLogger(__name__)
 
 # --- Load environment variables ---
 load_dotenv()
+def get_chat_mode() -> bool:
+    try:
+        with open("chat.env", "r") as f:
+            for line in f:
+                if line.startswith("CHAT_MODE"):
+                    # Extract value after '=' and convert to bool
+                    value = line.split("=", 1)[1].strip()
+                    return value.lower() == "true"
+    except FileNotFoundError:
+        return False  # Default if file missing
+
+    return False  # Default fallback
+
+chat_mode = get_chat_mode()
+logging.disable(logging.CRITICAL if chat_mode else logging.NOTSET)
+
 
 # --- Prepare ADK Tools ---
 logger.info("Initializing ADK tools...")

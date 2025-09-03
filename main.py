@@ -1,23 +1,23 @@
 import asyncio
 from stream import stream_pods 
 import argparse
-from const import  chat_agent, orchestrator_agent
+from const import  chat_agent
 from guardian.run import run
 
 
 
 import logging
 
-def enable_chat_mode(chat_mode: bool):
-    if chat_mode:
-        # Disable all logging
-        logging.disable(logging.CRITICAL)
-    else:
-        # Re-enable logging
-        logging.disable(logging.NOTSET)
+def set_chat_mode(chat_mode: bool):
+     # Disable or enable logging based on chat_mode
+    logging.disable(logging.CRITICAL if chat_mode else logging.NOTSET)
+
+    # Write to file
+    with open("chat.env", "w") as f:
+        f.write(f"CHAT_MODE={'True' if chat_mode else 'False'}\n")
 
 def start_chat_mode(agent):
-    enable_chat_mode(True)
+    
     print("Welcome to KubeGuardian Chat Mode! 🎯")
     print("You can take action on your Kubernetes cluster right here in the terminal.")
     print("Type 'quit' to exit.\n")
@@ -50,8 +50,10 @@ def main():
     parser.add_argument("--chat-mode", action="store_true", help="Enable chat mode")
     args = parser.parse_args()
     if args.chat_mode:
+       set_chat_mode(True)
        start_chat_mode(agent=chat_agent)
     else:
+        set_chat_mode(False)
         ioloop = asyncio.get_event_loop()
         ioloop.create_task(stream_pods())
         #TODO create looop for other streams
