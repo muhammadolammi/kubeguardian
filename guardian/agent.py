@@ -1,9 +1,7 @@
 
 from google.adk.agents import Agent, SequentialAgent
 from .prompts import observer_prompt, rca_prompt, remediator_prompt, orchestrator_prompt
-from tools.toolset import custom_mcp_toolset, observer_mcp_toolset, kubectl_ai_mcp_toolset
-import asyncio
-
+from tools.toolset import  kubectl_ai_mcp_toolset
 # ObserverAgent = Agent(
 #     name="observer_agent",
 #     model="gemini-2.0-flash",

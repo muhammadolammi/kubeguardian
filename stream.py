@@ -4,12 +4,10 @@
 from kubernetes import client, config, watch
 import asyncio
 from guardian.run import run
-from guardian.agent import get_orchestrator_agent
 
-from const import logger
+from const import logger, agent
 #Create global agent
 
-agent = get_orchestrator_agent()
 def getconfig()-> dict:
     return {} 
 

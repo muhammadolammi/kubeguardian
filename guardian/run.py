@@ -87,7 +87,7 @@ async def run(agent : Agent, payload):
         return response
     except Exception as e:
         logger.error(f"❌ Agent run failed: {e}")
-        raise
+        # raise
     finally:
         logger.info(f"🧹 Session {session_id} complete.")
 
