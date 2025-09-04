@@ -18,3 +18,4 @@ logger = logging.getLogger(__name__)
 orchestrator_agent = get_orchestrator_agent()
 chat_agent = get_chat_agent()
 
+APP_NAME = "kubeguardian"

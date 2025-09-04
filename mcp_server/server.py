@@ -47,7 +47,8 @@ f = filesystem()
 tools = {
     "get_devs_name": FunctionTool(get_devs_name),
     "get_files_info": FunctionTool(f.get_files_info),
-    "get_file_content": FunctionTool(f.get_file_content)
+    "get_file_content": FunctionTool(f.get_file_content),
+    "get_absolute_path": FunctionTool(f.get_absolute_path),
     }
 logger.info(f"ADK tools {list(tools.keys())} initialized and ready to be exposed via MCP.")
 

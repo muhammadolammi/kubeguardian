@@ -9,7 +9,7 @@ from tools.toolset import  kubectl_ai_mcp_toolset,custom_mcp_toolset, email_mcp_
 def make_observer_agent():
     return Agent(
         name="observer_agent",
-        model="gemini-2.0-flash",
+        model="gemini-1.5-flash",
         description="Watchtower agent that observes cluster health and telemetry.",
         instruction=observer_prompt(),
         output_key="observer_output"
@@ -18,7 +18,7 @@ def make_observer_agent():
 def make_rca_agent():
     return Agent(
         name="rca_agent",
-        model="gemini-2.0-flash",
+        model="gemini-1.5-flash",
         description="Detective agent for root cause analysis.",
         instruction=rca_prompt(),
         output_key="rca_output"
@@ -27,21 +27,11 @@ def make_rca_agent():
 def make_remediator_agent():
     return Agent(
         name="remediator_agent",
-        model="gemini-2.0-flash",
+        model="gemini-1.5-flash",
         description="Field engineer agent for remediation.",
         instruction=remediator_prompt(),
         output_key="remediator_output"
     )
-
-# def nake_file_system_Agent():
-#     return Agent(
-#         name="fs_agent",
-#         model="gemini-2.0-flash",
-#         description="File System agent for fs.",
-#         instruction=remediator_prompt(),
-#         output_key="fs_output",
-#         tools=[]
-#     )
 
 def get_orchestrator_agent():
     return Agent(
@@ -54,7 +44,7 @@ def get_orchestrator_agent():
             make_remediator_agent()
         ],
         tools=[kubectl_ai_mcp_toolset],
-        model="gemini-2.5-flash",
+        model="gemini-2.0-flash",
         output_key= "orchestrator_response"
     )
 
@@ -62,13 +52,10 @@ def get_orchestrator_agent():
 def get_chat_agent():
     return Agent(
         name="chat_agent",
-        description="Conversational entry point for Kubernetes operations, delegating to orchestrator and tools.",
+        description = "Autonomous conversational agent for Kubernetes — deploys, scales, and repairs workloads using kubectl-ai and custom tools.",
         instruction=chat_agent_prompt(),
-        sub_agents=[
-            get_orchestrator_agent(),
-        ],
-        tools=[custom_mcp_toolset],
-        model="gemini-2.5-flash",
+        tools=[custom_mcp_toolset, kubectl_ai_mcp_toolset],
+        model="gemini-2.0-flash",
         output_key="chat_response"
     )
 root_agent = get_chat_agent()

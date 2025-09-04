@@ -80,7 +80,10 @@ class filesystem():
         except Exception as e:
             return f"Error: {e}"
 
+
+
     def get_file_content(self, file_path: str) -> str:
+
         """
         Read the content of a file (up to 10,000 chars).
         """
@@ -100,3 +103,26 @@ class filesystem():
             return output
         except Exception as e:
             return f'Error: {e}'
+        
+
+    def get_absolute_path(self, relative_path: str) -> str:
+        """
+        Resolve a given path into an absolute path inside the permitted directory.
+
+        Args:
+            relative_path (str): The relative or absolute path provided by the user.
+
+        Returns:
+            str: The safe absolute path, or an error message if outside permitted directory.
+        """
+        try:
+            # Resolve path relative to files_directory
+            abs_path = self._resolve_dir(relative_path)
+
+            # Check security boundary
+            if not self._isinsidefilesDirectory(abs_path):
+                return f'Error: "{relative_path}" resolves outside the permitted directory'
+
+            return abs_path
+        except Exception as e:
+            return f"Error: {e}"

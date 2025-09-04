@@ -40,6 +40,7 @@ kubectl_ai_mcp_toolset = MCPToolset(
                         "--mcp-server",
                     ],
                     env={},
+                    capture_stderr=True
                 ),
             ),
             # Optional: Filter which tools from the MCP server are exposed
