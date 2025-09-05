@@ -1,11 +1,11 @@
 import asyncio
 from stream import stream_pods , stream_deployments
 import argparse
-from const import  chat_agent
+from const import   logger
 from guardian.run import run
 from sessions.sessions import create_new_session 
 from google.adk.sessions import InMemorySessionService
-
+from guardian.agent import get_chat_agent, get_remediator_agent
 
 
 
@@ -19,13 +19,13 @@ def set_chat_mode(chat_mode: bool):
     with open("chat.env", "w") as f:
         f.write(f"CHAT_MODE={'True' if chat_mode else 'False'}\n")
 
-def start_chat_mode(agent,session_service,session_data, namespace):
+async def start_chat_mode(agent,session_service,session_data):
     
     print("Welcome to KubeGuardian Chat Mode! 🎯")
     print("You can take action on your Kubernetes cluster right here in the terminal.")
     print("Type 'quit' to exit.\n")
 
-    payload_config = {"user_type": "admin", "authorize_namespace": namespace}  # Could extend to dev, viewer, etc.
+    payload_config = {"user_type": "admin"}  # Could extend to dev, viewer, etc.
 
     while True:
         try:
@@ -39,7 +39,7 @@ def start_chat_mode(agent,session_service,session_data, namespace):
 
             payload_config["user_message"] = user_input
             
-            ai_response = asyncio.run(run(agent,session_service, session_data, f"{payload_config}", "chat_response"))
+            ai_response = await (run(agent,session_service, session_data, f"{payload_config}", "chat_response"))
             
             print("\nAgent:")
             print(ai_response or "⚠️ No response generated")
@@ -48,31 +48,39 @@ def start_chat_mode(agent,session_service,session_data, namespace):
         except KeyboardInterrupt:
             print("\nExiting chat mode. Goodbye!")
             break
-def main():
+
+async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--chat-mode", action="store_true", help="Enable chat mode")
-    parser.add_argument("--namespace",  help="An authorized namespace is required", required=True, type=str)
+    parser.add_argument("--namespace", required=True, type=str,help="Include authorized cluster namespace ")
+    parser.add_argument("--fs", required=True, type=str,help="Include authorized file_directory")
     args = parser.parse_args()
     namespace = args.namespace
-    #TODO determin when to actually create new session when we introduce web ui for the chat
-    # For now this suffice cause every run will create a new session
-    # We can decide to add sessions management later
-    session_service = InMemorySessionService()
-    #TODO add a db that actually store users and get current user for the web ui
-    user_id = "test"
-    session_id = asyncio.run(create_new_session(session_service, user_id))
-    session_data = {"user_id":user_id, "session_id":session_id}
-    if args.chat_mode:
-       set_chat_mode(True)
-       start_chat_mode(agent=chat_agent,session_service=session_service,session_data=session_data, namespace=namespace)
 
+    session_service = InMemorySessionService()
+    user_id = "test"
+    session_id = await create_new_session(session_service, user_id)
+    session_data = {"user_id": user_id, "session_id": session_id}
+
+    if args.chat_mode:
+        chat_agent = get_chat_agent(namespace, args.fs)
+        set_chat_mode(True)
+        await start_chat_mode(chat_agent, session_service, session_data)
     else:
         set_chat_mode(False)
-        ioloop = asyncio.get_event_loop()
-        ioloop.create_task(stream_pods(namespace , session_service, session_data))
-        ioloop.create_task(stream_deployments(namespace, session_service, session_data))
-        #TODO create looop for other streams
-        # ioloop.create_task(deployments())
-        ioloop.run_forever()
+        # First-run no_event orchestration
+        payload = {"message": "deploy bank of anthos"}
+        remediator_agent = get_remediator_agent(namespace, args.fs)
+        ai_response = await run(remediator_agent, session_service, session_data, f"{payload}", "orchestrator_response")
+        logger.info("First-run orchestration result: %s", ai_response)
+
+        # Start streams concurrently
+        pod_task = asyncio.create_task(stream_pods(remediator_agent, namespace,session_service, session_data))
+        deploy_task = asyncio.create_task(stream_deployments(remediator_agent, namespace,session_service, session_data))
+        logger.info("Orchestrator started. Streaming pods & deployments...")
+
+        await asyncio.gather(pod_task, deploy_task)  # runs until cancelled
+
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
+        

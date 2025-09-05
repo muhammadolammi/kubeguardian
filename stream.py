@@ -7,60 +7,102 @@ from guardian.run import run
 from google.adk.sessions import InMemorySessionService
 
 
-from const import logger,  orchestrator_agent
-LAST_CALL = 0
-MIN_INTERVAL = 6  # ~10 per minute
-def getconfig()-> dict:
-    return {} 
+from const import logger
+from google.adk.agents import Agent
 
 
-async def stream_pods(namespace:str, session_servie:InMemorySessionService, session_data:dict):
+
+CRITICAL_POD_REASONS = ["CrashLoopBackOff", "Failed", "ImagePullBackOff"]
+CRITICAL_DEPLOYMENT_REASONS = ["ProgressDeadlineExceeded", "FailedCreate", "ReplicaFailure"]
+
+
+async def stream_pods(agent: Agent, namespace: str, session_service: InMemorySessionService, session_data: dict):
     """
-    Stream pods in give namespace
-    Args:
-        namespace:str 
+    Stream Pod events in the given namespace.
+    Calls orchestrator if any container has a critical reason.
     """
     config.load_kube_config()
     v1 = client.CoreV1Api()
     w = watch.Watch()
-    payload_config = getconfig()    
-    # for event in w.stream(v1.list_pod_for_all_namespaces):
+
     for event in w.stream(v1.list_namespaced_pod, namespace=namespace):
-        # Lets call the ai directly here 
+        
         event_type = event.get("type")
-        pod_obj = event.get("object", {})
-        reason = pod_obj.get("reason", "")
-        # status = pod_obj.get("status", {})
-        payload = {"type": "pod", "namespace": namespace, "event": event, "config":payload_config}
-        # Only call AI for specified pod reason
-        if event_type == "ERROR" or reason in ["CrashLoopBackOff", "Failed", "ImagePullBackOff"]:
+        pod_obj: client.V1Pod = event.get("object")
 
-            ai_response = await run(agent=orchestrator_agent,session_service=session_servie, session_data=session_data, message=f"{payload}", output_key="orchestrator_response")
+        # Aggregate all waiting reasons from containers
+        reasons = []
+        if pod_obj and pod_obj.status and pod_obj.status.container_statuses:
+            for cs in pod_obj.status.container_statuses:
+                if cs.state and cs.state.waiting and cs.state.waiting.reason:
+                    reasons.append(cs.state.waiting.reason)
 
-            logger.info("Autonomous System Started")
+        payload = {
+            "type": event_type,
+            "pod_name": pod_obj.metadata.name if pod_obj.metadata else "",
+            "reasons": reasons,
+        }
+
+        # Trigger orchestrator if any reason is critical
+        if event_type in ["ERROR", "DELETED", "WARNING"]  or any(r in CRITICAL_POD_REASONS for r in reasons):
+            logger.info("Email ageny called...")
+            ai_response = await run(
+                agent=agent,
+                session_service=session_service,
+                session_data=session_data,
+                message=f"{payload}",
+                output_key="orchestrator_response"
+            )
+            logger.info(f"Pod issue handled for {pod_obj.metadata.name}: {ai_response}")
             print(ai_response)
-        else: 
-            print(f"Ignored event: {reason}")
-
-        # TODO handlee ai response here
+        else:
+            logger.debug(f"Ignored pod event {pod_obj.metadata.name}, reasons: {reasons or '(none)'}")
 
         await asyncio.sleep(0)
-        
-   # Stream Deployments
-async def stream_deployments(namespace:str, session_servie:InMemorySessionService, session_data:dict):
+
+
+async def stream_deployments(agent:Agent,namespace: str, session_service: InMemorySessionService, session_data: dict):
     """
-    Streams deployment in give namespace
-    Args:
-        namespace:str 
+    Stream Deployment events in the given namespace.
+    Calls orchestrator if any critical deployment condition is found.
     """
     config.load_kube_config()
     apps_v1 = client.AppsV1Api()
     w = watch.Watch()
-    payload_config = getconfig()
-    
-    for event in w.stream(apps_v1.list_namespaced_deployment, namespace=namespace):
-        payload = {"type": "deployment", "namespace": namespace, "event": event, "config":payload_config}
-        ai_response = await run(agent=orchestrator_agent,session_service=session_servie, session_data=session_data, message=f"{payload}", output_key="orchestrator_response")
-        logger.info(f"Deployment event handled: {ai_response}")
-        await asyncio.sleep(0)
 
+    for event in w.stream(apps_v1.list_namespaced_deployment, namespace=namespace):
+        event_type = event.get("type")
+        deploy_obj: client.V1Deployment = event.get("object")
+
+        # Aggregate all relevant reasons
+        reasons = []
+        if deploy_obj and deploy_obj.status and deploy_obj.status.conditions:
+            for cond in deploy_obj.status.conditions:
+                if cond.reason:
+                    reasons.append(cond.reason)
+                # Prioritize rollout failures
+                if cond.type == "Progressing" and cond.reason == "ProgressDeadlineExceeded":
+                    reasons.append(cond.reason)
+
+        payload = {
+            "type": event_type,
+            "deployment_name": deploy_obj.metadata.name if deploy_obj.metadata else "",
+            "reasons": reasons,
+            
+        }
+
+        # Trigger orchestrator if any critical reason exists
+        if event_type in ["ERROR", "DELETED", "WARNING"]  or any(r in CRITICAL_DEPLOYMENT_REASONS for r in reasons):
+            ai_response = await run(
+                agent=agent,
+                session_service=session_service,
+                session_data=session_data,
+                message=f"{payload}",
+                output_key="orchestrator_response"
+            )
+            logger.info(f"Deployment issue handled for {deploy_obj.metadata.name}: {ai_response}")
+            print(ai_response)
+        else:
+            logger.debug(f"Ignored deployment event {deploy_obj.metadata.name}, reasons: {reasons or '(none)'}")
+
+        await asyncio.sleep(0)

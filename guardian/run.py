@@ -62,7 +62,7 @@ async def call_agent_async(
                     return final_response_text  # ✅ done, return early
 
         except Exception as e:
-            if "RESOURCE_EXHAUSTED" in str(e) and attempt < max_retries:
+            if ("RESOURCE_EXHAUSTED" in str(e) or "Timed out" in str(e)) and attempt < max_retries:
                 delay = 25 * (attempt + 1)  # ⏱ exponential-ish backoff
                 logger.warning(f"⚠️ Quota hit, retrying in {delay}s (attempt {attempt+1}/{max_retries})...")
                 await asyncio.sleep(delay)

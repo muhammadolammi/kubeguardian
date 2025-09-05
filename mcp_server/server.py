@@ -1,6 +1,5 @@
-import os
 
-
+import anyio
 import asyncio
 import json
 from dotenv import load_dotenv
@@ -14,7 +13,7 @@ import mcp.server.stdio
 # ADK Tool Imports
 from google.adk.tools.function_tool import FunctionTool
 from google.adk.tools.mcp_tool.conversion_utils import adk_to_mcp_tool_type
-from tools.custom_tools import get_devs_name , filesystem # Your callable 
+from tools.custom_tools import get_devs_name , get_files_info, get_absolute_path, get_file_content 
 from const import logger
 
 
@@ -40,15 +39,15 @@ logging.disable(logging.CRITICAL if chat_mode else logging.NOTSET)
 
 # --- Prepare ADK Tools ---
 logger.info("Initializing ADK tools...")
-#TODO theres an option to change the allowed files_directory here , default is cwd/app
-f = filesystem()
+
+
 
 
 tools = {
     "get_devs_name": FunctionTool(get_devs_name),
-    "get_files_info": FunctionTool(f.get_files_info),
-    "get_file_content": FunctionTool(f.get_file_content),
-    "get_absolute_path": FunctionTool(f.get_absolute_path),
+    "get_files_info": FunctionTool(get_files_info),
+    "get_file_content": FunctionTool(get_file_content),
+    "get_absolute_path": FunctionTool(get_absolute_path),
     }
 logger.info(f"ADK tools {list(tools.keys())} initialized and ready to be exposed via MCP.")
 
