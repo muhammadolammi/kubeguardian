@@ -1,11 +1,14 @@
 
 
 import uuid
-from google.adk.sessions import InMemorySessionService
+from google.adk.sessions import DatabaseSessionService
+# Example using a local SQLite file:
+
 from const import APP_NAME
 from const import logger
 
-async def create_new_session(session_service: InMemorySessionService, user_id:str ):
+
+async def create_new_session(session_service: DatabaseSessionService, user_id:str ):
     """
     Create a new session with a unique session ID.
     """
@@ -22,3 +25,27 @@ async def create_new_session(session_service: InMemorySessionService, user_id:st
     )
     logger.info(f"✅ Created new session: {session_id}")
     return  session_id
+
+
+
+
+async def get_session(session_service: DatabaseSessionService, session_id:str ):
+    """
+    Get  session with a session ID.
+    """
+    
+    return session_service.get_session(session_id=session_id)
+
+
+
+
+async def delete_session(session_service: DatabaseSessionService, session_id:str ):
+    """
+    Delete  session .
+    """
+    
+    return session_service.delete_session(session_id=session_id)
+
+
+
+

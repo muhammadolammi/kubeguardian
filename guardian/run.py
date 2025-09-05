@@ -6,7 +6,7 @@ import asyncio
 
 from google.adk.agents import Agent
 from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
+from google.adk.sessions import DatabaseSessionService
 from google.genai import types  # For message parts
 from const import APP_NAME
 
@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def get_runner(root_agent: Agent, session_service: InMemorySessionService ) -> Runner:
+def get_runner(root_agent: Agent, session_service: DatabaseSessionService ) -> Runner:
     """Return a Runner tied to a specific session service."""
     return Runner(
         agent=root_agent,
@@ -81,7 +81,7 @@ async def call_agent_async(
 
 
 
-async def run(agent : Agent,session_service:InMemorySessionService,session_data:dict,  message:str, output_key:str):
+async def run(agent : Agent,session_service:DatabaseSessionService,session_data:dict,  message:str, output_key:str):
     """
     Main entrypoint: Creates a new session, runs the agent, and tears down cleanly.
     Each call to `run()` starts a new isolated session.

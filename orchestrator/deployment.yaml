@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+    spec:
+      containers:
+      - name: orchestrator
+        image: your-orchestrator-image:latest
+        command: ["python", "orchestrator/service.py"]
+        env:
+        - name: NAMESPACE
+          value: "bank-of-anthos"
+        - name: FS_DIR
+          value: "ss"
+        # Mount any required credentials / secrets here if needed

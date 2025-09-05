@@ -6,7 +6,8 @@ import asyncio
 from guardian.run import run
 from google.adk.sessions import InMemorySessionService
 
-
+import json
+import pika
 from const import logger
 from google.adk.agents import Agent
 
@@ -14,6 +15,14 @@ from google.adk.agents import Agent
 
 CRITICAL_POD_REASONS = ["CrashLoopBackOff", "Failed", "ImagePullBackOff"]
 CRITICAL_DEPLOYMENT_REASONS = ["ProgressDeadlineExceeded", "FailedCreate", "ReplicaFailure"]
+
+
+def publish_message(channel, payload):
+    channel.basic_publish(
+        exchange="",
+        routing_key="deployment_events",
+        body=json.dumps(payload).encode("utf-8")
+    )
 
 
 async def stream_pods(agent: Agent, namespace: str, session_service: InMemorySessionService, session_data: dict):
@@ -61,48 +70,64 @@ async def stream_pods(agent: Agent, namespace: str, session_service: InMemorySes
         await asyncio.sleep(0)
 
 
+
+
 async def stream_deployments(agent:Agent,namespace: str, session_service: InMemorySessionService, session_data: dict):
     """
     Stream Deployment events in the given namespace.
     Calls orchestrator if any critical deployment condition is found.
     """
-    config.load_kube_config()
+    # RabbitMQ connection
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host="rabbitmq"))
+    channel = connection.channel()
+    channel.queue_declare(queue="deployment_events", durable=True)
     apps_v1 = client.AppsV1Api()
     w = watch.Watch()
+    try :
+        config.load_kube_config()
+    except:
+            # If we running on gke
+        config.load_incluster_config()
+    while True:
+        try:
+            for event in w.stream(apps_v1.list_namespaced_deployment, namespace=namespace):
+                event_type = event.get("type")
+                deploy_obj: client.V1Deployment = event.get("object")
 
-    for event in w.stream(apps_v1.list_namespaced_deployment, namespace=namespace):
-        event_type = event.get("type")
-        deploy_obj: client.V1Deployment = event.get("object")
+                # Aggregate all relevant reasons
+                reasons = []
+                if deploy_obj and deploy_obj.status and deploy_obj.status.conditions:
+                    for cond in deploy_obj.status.conditions:
+                        if cond.reason:
+                            reasons.append(cond.reason)
+                        # Prioritize rollout failures
+                        if cond.type == "Progressing" and cond.reason == "ProgressDeadlineExceeded":
+                            reasons.append(cond.reason)
 
-        # Aggregate all relevant reasons
-        reasons = []
-        if deploy_obj and deploy_obj.status and deploy_obj.status.conditions:
-            for cond in deploy_obj.status.conditions:
-                if cond.reason:
-                    reasons.append(cond.reason)
-                # Prioritize rollout failures
-                if cond.type == "Progressing" and cond.reason == "ProgressDeadlineExceeded":
-                    reasons.append(cond.reason)
+                payload = {
+                    "type": event_type,
+                    "deployment_name": deploy_obj.metadata.name if deploy_obj.metadata else "",
+                    "reasons": reasons,
+                    
+                }
 
-        payload = {
-            "type": event_type,
-            "deployment_name": deploy_obj.metadata.name if deploy_obj.metadata else "",
-            "reasons": reasons,
-            
-        }
+                # Trigger orchestrator if any critical reason exists
+                if event_type in ["ERROR", "DELETED", "WARNING"]  or any(r in CRITICAL_DEPLOYMENT_REASONS for r in reasons):
+                    ai_response = await run(
+                        agent=agent,
+                        session_service=session_service,
+                        session_data=session_data,
+                        message=f"{payload}",
+                        output_key="orchestrator_response"
+                    )
+                    print(ai_response)
 
-        # Trigger orchestrator if any critical reason exists
-        if event_type in ["ERROR", "DELETED", "WARNING"]  or any(r in CRITICAL_DEPLOYMENT_REASONS for r in reasons):
-            ai_response = await run(
-                agent=agent,
-                session_service=session_service,
-                session_data=session_data,
-                message=f"{payload}",
-                output_key="orchestrator_response"
-            )
-            logger.info(f"Deployment issue handled for {deploy_obj.metadata.name}: {ai_response}")
-            print(ai_response)
-        else:
-            logger.debug(f"Ignored deployment event {deploy_obj.metadata.name}, reasons: {reasons or '(none)'}")
+                    # instead of calling ai lets publish to rabbitmq connection instead
+                    # publish_message(channel, payload)
+                    # logger.info(f"Event captured and published to channel. event: {deploy_obj.metadata.name}: {reasons}")
+                else:
+                    logger.debug(f"Ignored deployment event {deploy_obj.metadata.name}, reasons: {reasons or '(none)'}")
 
-        await asyncio.sleep(0)
+        except Exception as e:
+            print(f"Watch failed: {e}, retrying...")
+            connection.sleep(5)

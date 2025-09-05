@@ -11,7 +11,7 @@ from tools.toolset import  kubectl_ai_mcp_toolset,custom_mcp_toolset
 def get_remediator_agent(namespace:str, file_directory:str):
     return Agent(
         name="remediator_agent",
-        model="gemini-2.5-flash",
+        model="gemini-2.0-flash",
         description="Field engineer agent for remediation.",
         instruction=remediator_prompt(namespace,file_directory),
         tools=[kubectl_ai_mcp_toolset, custom_mcp_toolset],
@@ -38,7 +38,7 @@ def get_chat_agent(namespace:str,file_directory:str):
         description = "Autonomous conversational agent for Kubernetes — deploys, scales, and repairs workloads using kubectl-ai and custom tools.",
         instruction=chat_agent_prompt(namespace, file_directory),
         tools=[custom_mcp_toolset, kubectl_ai_mcp_toolset],
-        model="gemini-1.5-flash",
+        model="gemini-2.0-flash",
         output_key="chat_response"
     )
 root_agent = get_remediator_agent("main", "~/hackathon/kubeguardian/apps")

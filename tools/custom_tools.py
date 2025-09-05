@@ -199,7 +199,7 @@ async def get_files_info(files_directory:str, directory: Optional[str] = None) -
     directory = resolve_dir(files_directory, directory)
 
     try:
-        if not is_inside_files_directory(directory):
+        if not is_inside_files_directory(files_directory, directory):
             return f'Error: "{directory}" is outside the working directory'
 
         if not path.isdir(directory):
@@ -259,7 +259,7 @@ def get_absolute_path(files_directory:str, relative_path: str) -> str:
     try:
         abs_path = resolve_dir(files_directory, relative_path)
 
-        if not is_inside_files_directory(abs_path):
+        if not is_inside_files_directory(files_directory, abs_path):
             return f'Error: "{relative_path}" resolves outside the permitted directory'
 
         return abs_path
