@@ -1,3 +1,4 @@
 kubernetes
 asyncio 
-google.adk
+google.adk 
+pika 

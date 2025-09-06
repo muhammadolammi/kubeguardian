@@ -13,7 +13,7 @@ import mcp.server.stdio
 # ADK Tool Imports
 from google.adk.tools.function_tool import FunctionTool
 from google.adk.tools.mcp_tool.conversion_utils import adk_to_mcp_tool_type
-from tools.custom_tools import get_devs_name , get_files_info, get_absolute_path, get_file_content 
+from tools.custom_tools import get_devs_name , get_all_manifests, get_absolute_path, get_manifest 
 from const import logger
 
 
@@ -45,8 +45,8 @@ logger.info("Initializing ADK tools...")
 
 tools = {
     "get_devs_name": FunctionTool(get_devs_name),
-    "get_files_info": FunctionTool(get_files_info),
-    "get_file_content": FunctionTool(get_file_content),
+    "get_manifest": FunctionTool(get_manifest),
+    "get_all_manifests": FunctionTool(get_all_manifests),
     "get_absolute_path": FunctionTool(get_absolute_path),
     }
 logger.info(f"ADK tools {list(tools.keys())} initialized and ready to be exposed via MCP.")

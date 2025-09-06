@@ -14,9 +14,11 @@ from const import APP_NAME
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+#Session service should be global not created anywhere
+from session.session import session_service
 
 
-def get_runner(root_agent: Agent, session_service: DatabaseSessionService ) -> Runner:
+def get_runner(root_agent: Agent) -> Runner:
     """Return a Runner tied to a specific session service."""
     return Runner(
         agent=root_agent,
@@ -29,7 +31,6 @@ async def call_agent_async(
     user_id: str,
     session_id: str,
     message: str,
-    output_key: str,
     max_retries: int = 3,
 ) -> str:
     """
@@ -81,18 +82,18 @@ async def call_agent_async(
 
 
 
-async def run(agent : Agent,session_service:DatabaseSessionService,session_data:dict,  message:str, output_key:str):
+async def run(agent : Agent,session_data:dict,  message:str, ):
     """
     Main entrypoint: Creates a new session, runs the agent, and tears down cleanly.
     Each call to `run()` starts a new isolated session.
     """
-    runner = get_runner(agent,session_service)
+    runner = get_runner(agent)
     #TODO make session creation time base, this shoould be an arg and not created here.
     #TODO new session every ten minute , or new session for each stream.
     user_id, session_id = session_data["user_id"], session_data["session_id"]
 
     try:
-        response = await call_agent_async(runner, user_id, session_id, message, output_key)
+        response = await call_agent_async(runner, user_id, session_id, message)
         return response
     except Exception as e:
         

@@ -6,9 +6,14 @@ from google.adk.sessions import DatabaseSessionService
 
 from const import APP_NAME
 from const import logger
+import os 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+db_url = f"sqlite:///{os.path.join(BASE_DIR, 'db', 'session.db')}"
 
-async def create_new_session(session_service: DatabaseSessionService, user_id:str ):
+session_service = DatabaseSessionService(db_url=db_url)
+
+async def create_new_session( user_id:str ):
     """
     Create a new session with a unique session ID.
     """
@@ -29,7 +34,7 @@ async def create_new_session(session_service: DatabaseSessionService, user_id:st
 
 
 
-async def get_session(session_service: DatabaseSessionService, session_id:str ):
+async def get_session( session_id:str ):
     """
     Get  session with a session ID.
     """
@@ -39,13 +44,12 @@ async def get_session(session_service: DatabaseSessionService, session_id:str ):
 
 
 
-async def delete_session(session_service: DatabaseSessionService, session_id:str ):
+async def delete_session( session_id:str ):
     """
     Delete  session .
     """
     
     return session_service.delete_session(session_id=session_id)
-
 
 
 
