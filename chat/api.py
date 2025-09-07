@@ -37,5 +37,5 @@ async def remove_session(session_id: str):
 async def chat(req: ChatRequest):
     session_data = {"user_id": req.user_id, "session_id": req.session_id}
     chat_agent = get_chat_agent(req.namespace)
-    response = await run(chat_agent, session_data, req.message, "chat_response")
+    response = await run(chat_agent, session_data, req.message)
     return {"response": response}

@@ -5,16 +5,22 @@ from tools.toolset import  kubectl_ai_mcp_toolset,custom_mcp_toolset
    
 
 
-
-
-
-def get_remediator_agent(namespace:str, ):
+def get_descriptor_agent():
     return Agent(
         name="remediator_agent",
-        model="gemini-2.0-flash",
+        model="gemini-1.5-flash",
+        description="An agent that describe given payload",
+    )
+
+
+def get_remediator_agent(namespace:str ):
+    return Agent(
+        name="remediator_agent",
+        model="gemini-1.5-flash",
         description="Field engineer agent for remediation.",
         instruction=remediator_prompt(namespace),
         tools=[kubectl_ai_mcp_toolset, custom_mcp_toolset],
+        sub_agents=[get_descriptor_agent()],
         output_key="remediator_output"
     )
 
@@ -41,7 +47,7 @@ def get_chat_agent(namespace:str):
         model="gemini-2.0-flash",
         output_key="chat_response"
     )
-root_agent = get_remediator_agent("main")
+root_agent = get_remediator_agent("bank-of-anthos")
 # root_agent = Agent(
 #     name="root_agent",
 #     instruction="You are kubectl ai wrapper, you can do everything kubectl can do using natural language",

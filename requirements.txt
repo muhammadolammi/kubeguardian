@@ -1,4 +1,7 @@
+mcp 
+google-adk 
+aio_pika
 kubernetes
-asyncio 
-google.adk 
-pika 
+google-generativeai
+fastapi 
+pydantic

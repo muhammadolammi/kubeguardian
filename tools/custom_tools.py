@@ -5,9 +5,9 @@ from typing import Optional
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-#TODO this is hardly coded , get from env.
 
-AUTHORIZED_DIRECTORY = "/home/muhammad/hackathon/kubeguardian/app/bank-of-anthos/kubernetes-manifests"
+#TODO this is hardly coded , get from env.
+AUTHORIZED_DIRECTORY = "/home/muhammad/hackathon/kubeguardian/apps/bank-of-anthos/kubernetes-manifests"
 
 async def get_all_manifests() -> str:
     """
@@ -114,3 +114,5 @@ def get_devs_name()-> str:
        The developer name 
     """
     return("Dev Name is Muhammad Akewukanwo")
+
+
