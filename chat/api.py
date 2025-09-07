@@ -1,8 +1,12 @@
+from const import get_agent_ai_url
+AI_AGENT_URL = get_agent_ai_url()
+
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from guardian.run import run
-from guardian.agent import get_chat_agent
 from session.session import create_new_session, get_session, delete_session
+import httpx  
 
 app = FastAPI()
 #Lets use sqlite to test
@@ -35,7 +39,20 @@ async def remove_session(session_id: str):
  
 @app.post("/chat")
 async def chat(req: ChatRequest):
-    session_data = {"user_id": req.user_id, "session_id": req.session_id}
-    chat_agent = get_chat_agent(req.namespace)
-    response = await run(chat_agent, session_data, req.message)
-    return {"response": response}
+    # Call agent service
+    payload = {
+        "agent_type": "chat",
+        "namespace": req.namespace,
+        "user_id": req.user_id,
+        "session_id": req.session_id,
+        "message": req.message
+    }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(AI_AGENT_URL, json=payload, timeout=60)
+            resp.raise_for_status()
+            data = resp.json()
+            return {"response": data.get("response")}
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=500, detail=f"AI agent call failed: {str(e)}")

@@ -1,0 +1,13 @@
+# ai-agent-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-agent
+spec:
+  selector:
+    app: ai-agent
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+  type: ClusterIP

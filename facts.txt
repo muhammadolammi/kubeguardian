@@ -1,8 +1,10 @@
-
-
-Everytime theres an event theres a new state using InMemorySessionService
-
-Agent can be state aware by reading from   ToolContext 
-Updating the root agent to use this stateful tool and configuring it with an output_key to automatically save its final weather report to the session state.
-
-
+[project]
+name = "fastapi-example"
+version = "0.1.0"
+description = "A very simple FastAPI application"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.95.0",
+    "uvicorn>=0.21.1",
+]

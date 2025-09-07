@@ -7,9 +7,8 @@ from google.adk.sessions import DatabaseSessionService
 from const import APP_NAME
 from const import logger
 import os 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-db_url = f"sqlite:///{os.path.join(BASE_DIR, 'db', 'session.db')}"
+from const import get_db_url
+db_url = get_db_url()
 
 session_service = DatabaseSessionService(db_url=db_url)
 

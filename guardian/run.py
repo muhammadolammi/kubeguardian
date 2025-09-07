@@ -14,9 +14,10 @@ from const import APP_NAME
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-#Session service should be global not created anywhere
-from session.session import session_service
+from const import get_db_url
+db_url = get_db_url()
 
+session_service = DatabaseSessionService(db_url=db_url)
 
 def get_runner(root_agent: Agent) -> Runner:
     """Return a Runner tied to a specific session service."""

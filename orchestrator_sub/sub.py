@@ -4,24 +4,41 @@ import os
 import sys
 import aio_pika
 from session.session import create_new_session
-from guardian.agent import get_remediator_agent
-from google.adk import Agent
-from guardian.run import run
+import httpx
+from const import AI_AGENT_URL
 
 EVENTS = ["ERROR", "DELETED", "WARNING", "ADDED"]
 
-async def handle_message(agent: Agent, session_data: dict, body: bytes):
+async def handle_message(namespace:str, session_data: dict, body: bytes):
     """Handle incoming RabbitMQ messages."""
     message = json.loads(body.decode("utf-8"))
     event_type = message.get("type")
     deployment = message["name"],
     print(f"[x] Received event: {event_type} for {deployment}")
-    # Call AI Remediator
-    agent_response = await run(agent=agent, session_data=session_data, message=body.decode("utf-8"))
-    print(f"[AI Response] {agent_response}")
+    # Prepare payload for AI agent
+    payload = {
+        "agent_type": "remediator",
+        "namespace": namespace,
+        "user_id": session_data.get("user_id"),
+        "session_id": session_data.get("session_id"),
+        "message": json.dumps(message)  # send full message as text
+    }
 
+    # Send to AI agent service
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(AI_AGENT_URL, json=payload, timeout=60)
+            resp.raise_for_status()
+            data = resp.json()
+            agent_response = data.get("response")
+            print(f"[AI Response] {agent_response}")
+            return agent_response
+        except httpx.HTTPError as e:
+            print(f"[!] Failed to call AI agent: {e}")
+            return f"⚠️ AI agent call failed: {str(e)}"
+    
 
-async def deployment_sub(agent: Agent, namespace: str, session_data: dict):
+async def deployment_sub( namespace: str, session_data: dict):
     """Async subscriber that listens for deployment events."""
     connection = await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/")
     async with connection:
@@ -43,16 +60,14 @@ async def deployment_sub(agent: Agent, namespace: str, session_data: dict):
         async with queue.iterator() as queue_iter:
             async for message in queue_iter:
                 async with message.process(ignore_processed=True):
-                    await handle_message(agent, session_data, message.body)
+                    await handle_message(namespace, session_data, message.body)
 
 
 async def async_main():
     authorized_namespace = "bank-of-anthos"
-    agent = get_remediator_agent(authorized_namespace)
     session_id = await create_new_session("remediator")
 
     await deployment_sub(
-        agent,
         authorized_namespace,
         {"user_id": "remediator", "session_id": session_id},
     )

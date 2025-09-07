@@ -1,0 +1,16 @@
+[project]
+name = "kubeguardian"
+version = "0.1.0"
+description = "Base image for kubeguardian"
+readme = "README.md"
+requires-python = ">=3.12.4"
+dependencies = [
+
+"fastapi",
+"pydantic",
+"mcp",
+"google-adk",
+"aio_pika",
+"kubernetes",
+"google-generativeai",
+]
