@@ -16,13 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 APP_NAME = "kubeguardian"
-def get_db_url()-> str:
-    db_url = os.getenv("DB_URL") 
-    if not db_url:
-        print("DB URL not in environment")
-        os._exit(1)
-def get_agent_ai_url()-> str:
-    db_url = os.getenv("DB_URL") 
-    if not db_url:
-        print("Agent-Ai URL not in environment")
+def get_ENV(name :str) -> str:
+    env = os.getenv(name) 
+    if not env:
+        print(f"{env} not in environment")
         os._exit(1)

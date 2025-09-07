@@ -1,3 +1,6 @@
+from const import get_ENV
+rabbitmq_url = get_ENV("RABBITMQ_URL")
+
 import asyncio
 import json
 import logging
@@ -5,6 +8,7 @@ import sys
 import time
 from kubernetes import client, config, watch
 import aio_pika
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -19,7 +23,7 @@ async def connect_rabbitmq():
     """Keep trying to connect to RabbitMQ until success."""
     while True:
         try:
-            connection = await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/")
+            connection = await aio_pika.connect_robust(rabbitmq_url)
             logger.info("Connected to RabbitMQ")
             return connection
         except Exception as e:

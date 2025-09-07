@@ -1,0 +1,30 @@
+# chat-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: subscriber
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: subscriber
+  template:
+    metadata:
+      labels:
+        app: subscriber
+    spec:
+      containers:
+      - name: subscriber
+        image: kubeguardian/subscriber:latest   # Replace with your built Docker image
+        imagePullPolicy: IfNotPresent
+
+        ports: 
+          - containerPort: 8083
+        env:
+          - name: DB_URL
+            value: postgresql://admin:admin123@accounts-db:5432/kubeguardian
+          - name: AI_AGENT_URL
+            value: http://ai-agent:8081/run-agent   # AI agent service URL
+          - name: RABBITMQ_URL
+            value: amqp://guest:guest@rabbitmq:5672/

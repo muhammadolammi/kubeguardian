@@ -1,5 +1,5 @@
-from const import get_agent_ai_url
-AI_AGENT_URL = get_agent_ai_url()
+from const import get_ENV
+AI_AGENT_URL = get_ENV("AI_AGENT_URL")
 
 
 from fastapi import FastAPI, HTTPException

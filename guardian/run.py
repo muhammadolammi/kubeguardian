@@ -1,9 +1,8 @@
-
-import uuid
+from const import get_ENV
+db_url = get_ENV("DB_URL")
 import logging
 import warnings
 import asyncio
-
 from google.adk.agents import Agent
 from google.adk.runners import Runner
 from google.adk.sessions import DatabaseSessionService
@@ -14,8 +13,7 @@ from const import APP_NAME
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-from const import get_db_url
-db_url = get_db_url()
+
 
 session_service = DatabaseSessionService(db_url=db_url)
 

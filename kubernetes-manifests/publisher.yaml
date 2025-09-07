@@ -3,26 +3,25 @@ apiVersion: apps/v1
 kind: Deployment
 
 metadata:
-  name: chat
+  name: publsiher
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: chat
+      app: publsiher
   template:
     metadata:
       labels:
-        app: chat
+        app: publsiher
     spec:
       containers:
-      - name: chat
+      - name: publsiher
         image: kubeguardian/chat:latest   # Replace with your built Docker image
         imagePullPolicy: IfNotPresent
 
         ports: 
-          - containerPort: 8000
+          - containerPort: 8082
         env:
-          - name: DB_URL
-            value: postgresql://admin:admin123@accounts-db:5432/kubeguardian
-          - name: AI_AGENT_URL
-            value: http://ai-agent:8081/run-agent   # AI agent service URL
+          - name: RABBITMQ_URL
+            value: amqp://guest:guest@rabbitmq:5672/
+          

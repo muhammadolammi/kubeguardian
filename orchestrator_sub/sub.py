@@ -1,3 +1,7 @@
+from const import get_ENV
+rabbitmq_url = get_ENV("RABBITMQ_URL")
+AI_AGENT_URL = get_ENV("AI_AGENT_URL")
+
 import asyncio
 import json
 import os
@@ -5,7 +9,7 @@ import sys
 import aio_pika
 from session.session import create_new_session
 import httpx
-from const import AI_AGENT_URL
+
 
 EVENTS = ["ERROR", "DELETED", "WARNING", "ADDED"]
 
@@ -40,7 +44,7 @@ async def handle_message(namespace:str, session_data: dict, body: bytes):
 
 async def deployment_sub( namespace: str, session_data: dict):
     """Async subscriber that listens for deployment events."""
-    connection = await aio_pika.connect_robust("amqp://guest:guest@rabbitmq:5672/")
+    connection = await aio_pika.connect_robust(rabbitmq_url)
     async with connection:
         channel = await connection.channel()
         await channel.set_qos(prefetch_count=1)

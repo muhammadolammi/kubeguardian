@@ -3,6 +3,7 @@ FROM kubeguardian/base:latest
 WORKDIR /app
 ENV PYTHONPATH=/app 
 ENV PATH="/app/.venv/bin:$PATH"
+EXPOSE 8084
 
 # Change user from root
 USER dev 

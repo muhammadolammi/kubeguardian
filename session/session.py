@@ -1,4 +1,5 @@
-
+from const import get_ENV
+db_url = get_ENV("DB_URL")
 
 import uuid
 from google.adk.sessions import DatabaseSessionService
@@ -6,9 +7,7 @@ from google.adk.sessions import DatabaseSessionService
 
 from const import APP_NAME
 from const import logger
-import os 
-from const import get_db_url
-db_url = get_db_url()
+
 
 session_service = DatabaseSessionService(db_url=db_url)
 

@@ -1,0 +1,45 @@
+# chat-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: chat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chat
+  template:
+    metadata:
+      labels:
+        app: chat
+    spec:
+      containers:
+      - name: chat
+        image: kubeguardian/chat:latest   # Replace with your built Docker image
+        imagePullPolicy: IfNotPresent
+
+        ports: 
+          - containerPort: 8000
+        env:
+          - name: DB_URL
+            value: postgresql://admin:admin123@accounts-db:5432/kubeguardian
+          - name: AI_AGENT_URL
+            value: http://ai-agent:8081/run-agent   # AI agent service URL
+
+
+---
+
+# chat-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-service
+spec:
+  selector:
+    app: chat
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
