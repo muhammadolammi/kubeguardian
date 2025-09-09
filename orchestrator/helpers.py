@@ -8,6 +8,7 @@ import sys
 import json
 import asyncio
 import time
+from kubernetes import watch
 
 
 
@@ -25,19 +26,36 @@ def serialize_event_obj(event: dict, resource: str) -> Payload:
     event_type = event.get("type")
     obj = event.get("object")
 
-    payload = {
-        "name": obj.metadata.name if obj and obj.metadata else None,
-        "type": event_type,
-        "namespace": obj.metadata.namespace if obj and obj.metadata else None,
-        "reason": event.get("reason")
-            or next((cond.reason for cond in (getattr(obj.status, "conditions", []) or []) if cond.reason), None),
-        "message": event.get("message")  or "",
-        "timestamp": (event.get("lastTimestamp") or event.get("eventTime") or ""),
-        "conditions": [
-            {"type": cond.type, "status": cond.status, "reason": cond.reason}
-            for cond in (getattr(obj.status, "conditions", []) or [])
-        ],
-    }
+    # Case 1: Event object (from CoreV1Api().list_namespaced_event)
+    if obj.kind == "Event":
+        payload = {
+            "name": obj.involved_object.name,
+            "type": event_type,
+            "namespace": obj.involved_object.namespace,
+            "reason": obj.reason,
+            "message": obj.message,
+            "timestamp": obj.last_timestamp or obj.event_time,
+            "conditions": [],  # Events don’t have conditions
+        }
+
+    # Case 2: Workload object (Pod, Deployment, etc.)
+    else:
+        payload = {
+            "name": obj.metadata.name if obj and obj.metadata else None,
+            "type": event_type,
+            "namespace": obj.metadata.namespace if obj and obj.metadata else None,
+            "reason": event.get("reason")
+                or next(
+                    (cond.reason for cond in (getattr(obj.status, "conditions", []) or []) if cond.reason),
+                    None,
+                ),
+            "message": event.get("message") or "",
+            "timestamp": (event.get("lastTimestamp") or event.get("eventTime") or ""),
+            "conditions": [
+                {"type": cond.type, "status": cond.status, "reason": cond.reason}
+                for cond in (getattr(obj.status, "conditions", []) or [])
+            ],
+        }
 
     payload["tier"] = classify_event(payload["reason"])
 
@@ -52,6 +70,7 @@ def serialize_event_obj(event: dict, resource: str) -> Payload:
         timestamp=payload["timestamp"],
         tier=payload["tier"],
     )
+
 
 
 def classify_event(reason: str) -> str:
@@ -71,7 +90,9 @@ async def connect_rabbitmq():
         try:
             connection = await aio_pika.connect_robust(rabbitmq_url)
             logger.info("Connected to RabbitMQ")
-            return connection
+            channel = await connection.channel()
+
+            return connection, channel
         except Exception as e:
             logger.error(f"RabbitMQ connection failed: {e}. Retrying in 5 seconds...")
             await asyncio.sleep(5)
@@ -82,13 +103,13 @@ async def connect_rabbitmq():
 async def process_event(channel: aio_pika.Channel, payload: Payload, exchange_name: str, resource_Name:str, to_be_processed_events:list):
     """Send event to RabbitMQ if relevant."""
 
-    event_type = payload.type
+    event_type = payload.type 
     
-    if event_type in to_be_processed_events:
-        routing_key = event_type
+    if event_type in to_be_processed_events or payload.reason in to_be_processed_events:
         message_body = json.dumps(payload).encode()
-
-
+        event_key = event_type if event_type in to_be_processed_events else payload.reason
+        namespace = payload.namespace or "cluster"
+        routing_key = f"{namespace}.{resource_Name}.{event_key.lower()}"
         exchange = await channel.get_exchange(exchange_name)
         await exchange.publish(
             aio_pika.Message(
@@ -97,17 +118,24 @@ async def process_event(channel: aio_pika.Channel, payload: Payload, exchange_na
             ),
             routing_key=routing_key,
         )
-        logger.info(f"Published. Resource: {resource_Name}, Event_Type: {event_type}")
+        logger.info(f"Published {resource_Name} {payload.type}:{payload.reason} for {payload.name}")
 
 
 
-async def stream_k8s_events(api_function, namespace: str, w):
+async def stream_k8s_events(api_function, namespace: str, w:watch.Watch):
     """Wrapper to turn blocking watch into async generator."""
     # w = watch.Watch()
     while True:
         try:
-            for event in w.stream(api_function, namespace=namespace):
-                yield event
+            if namespace :
+                for event in w.stream(api_function, namespace=namespace):
+                    yield event
+            else: 
+                #Clsuter wide function
+                for event in w.stream(api_function):
+                    yield event
         except Exception as e:
             logger.error(f"Watch failed: {e}, retrying in 5 seconds...")
             time.sleep(5)
+        finally:
+            w.stop()
