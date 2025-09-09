@@ -22,5 +22,5 @@ def get_ENV(name :str) -> str:
     load_dotenv()
     env = os.getenv(name) 
     if not env:
-        print(f"{env} not in environment")
+        print(f"{name} not in environment")
         os._exit(1)

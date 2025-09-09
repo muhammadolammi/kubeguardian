@@ -20,7 +20,7 @@ async def create_new_session( user_id:str ):
         
     }
 
-    await session_service.create_session(
+    session=await session_service.create_session(
         app_name=APP_NAME,
         user_id=user_id,
         session_id=session_id,
@@ -39,6 +39,15 @@ async def get_session( session_id:str ):
     
     return session_service.get_session(session_id=session_id)
 
+async def get_session_by_user_id(user_id:str):
+    return session_service.get_session(user_id=user_id)
+
+async def delete_session_by_user_id(user_id:str ):
+    """
+    Delete  session .
+    """
+    
+    session_service.delete_session(user_id=user_id)
 
 
 
@@ -47,7 +56,7 @@ async def delete_session( session_id:str ):
     Delete  session .
     """
     
-    return session_service.delete_session(session_id=session_id)
+    session_service.delete_session(session_id=session_id)
 
 
 
