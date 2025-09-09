@@ -13,7 +13,7 @@ import httpx
 
 EVENTS = ["ERROR", "DELETED", "WARNING", "ADDED"]
 
-async def handle_message(namespace:str, session_data: dict, body: bytes):
+async def handle_message(namespace:str, session_data: Payload, body: bytes):
     """Handle incoming RabbitMQ messages."""
     message = json.loads(body.decode("utf-8"))
     event_type = message.get("type")

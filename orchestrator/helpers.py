@@ -1,5 +1,6 @@
 from const import get_ENV
 rabbitmq_url = get_ENV("RABBITMQ_URL")
+from typing import Any
 
 from .types import Payload
 import aio_pika 
@@ -19,60 +20,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def serialize_event_obj(event: dict, resource: str) -> Payload:
-    if not event:
-        return {}
-
-    event_type = event.get("type")
-    obj = event.get("object")
-
-    # Case 1: Event object (from CoreV1Api().list_namespaced_event)
-    if obj.kind == "Event":
-        payload = {
-            "name": obj.involved_object.name,
-            "type": event_type,
-            "namespace": obj.involved_object.namespace,
-            "reason": obj.reason,
-            "message": obj.message,
-            "timestamp": obj.last_timestamp or obj.event_time,
-            "conditions": [],  # Events don’t have conditions
-        }
-
-    # Case 2: Workload object (Pod, Deployment, etc.)
-    else:
-        payload = {
-            "name": obj.metadata.name if obj and obj.metadata else None,
-            "type": event_type,
-            "namespace": obj.metadata.namespace if obj and obj.metadata else None,
-            "reason": event.get("reason")
-                or next(
-                    (cond.reason for cond in (getattr(obj.status, "conditions", []) or []) if cond.reason),
-                    None,
-                ),
-            "message": event.get("message") or "",
-            "timestamp": (event.get("lastTimestamp") or event.get("eventTime") or ""),
-            "conditions": [
-                {"type": cond.type, "status": cond.status, "reason": cond.reason}
-                for cond in (getattr(obj.status, "conditions", []) or [])
-            ],
-        }
-
-    payload["tier"] = classify_event(payload["reason"])
-
-    return Payload(
-        resource=resource,
-        type=payload["type"],
-        name=payload["name"],
-        namespace=payload["namespace"],
-        reason=payload["reason"],
-        message=payload["message"],
-        conditions=payload["conditions"],
-        timestamp=payload["timestamp"],
-        tier=payload["tier"],
-    )
-
-
-
 def classify_event(reason: str) -> str:
     if reason in ["CrashLoopBackOff", "OOMKilled", "ImagePullBackOff", "NodeNotReady"]:
         return "critical"
@@ -81,8 +28,75 @@ def classify_event(reason: str) -> str:
     else:
         return "informational"
 
+def serialize_event_obj(event: dict[str, Any], resource: str) -> Payload | None:
+    if not event:
+        return None
 
+    event_type = event.get("type")
+    obj = event.get("object")
 
+    if obj is None:
+        return None
+
+    # Try to extract metadata safely
+    name = getattr(getattr(obj, "metadata", None), "name", None)
+    namespace = getattr(getattr(obj, "metadata", None), "namespace", None)
+
+    # Case 1: Kubernetes Event resource
+    if getattr(obj, "kind", None) == "Event":
+        payload_dict = {
+            "name": getattr(obj.involved_object, "name", None),
+            "type": event_type,
+            "namespace": getattr(obj.involved_object, "namespace", None),
+            "reason": getattr(obj, "reason", None),
+            "message": getattr(obj, "message", ""),
+            "timestamp": getattr(obj, "last_timestamp", None) or getattr(obj, "event_time", None),
+            "conditions": [],
+        }
+
+    # Case 2: Workloads & cluster objects
+    else:
+        # Handle conditions defensively
+        conditions = []
+        if hasattr(obj, "status") and getattr(obj.status, "conditions", None):
+            conditions = [
+                {
+                    "type": getattr(cond, "type", None),
+                    "status": getattr(cond, "status", None),
+                    "reason": getattr(cond, "reason", None),
+                }
+                for cond in obj.status.conditions
+            ]
+
+        payload_dict = {
+            "name": name,
+            "type": event_type,
+            "namespace": namespace,   # may be None for cluster-scoped objects
+            "reason": event.get("reason")
+                or next(
+                    (getattr(cond, "reason", None) for cond in conditions if getattr(cond, "reason", None)),
+                    None,
+                ),
+            "message": event.get("message") or "",
+            "timestamp": event.get("lastTimestamp") or event.get("eventTime") or None,
+            "conditions": conditions,
+        }
+
+    # Add severity/tier classification
+    payload_dict["tier"] = classify_event(payload_dict.get("reason"))
+
+    # Build Pydantic Payload (namespace is optional now)
+    return Payload(
+        resource=resource,
+        type=payload_dict["type"],
+        name=payload_dict["name"],
+        namespace=payload_dict.get("namespace"),
+        reason=payload_dict.get("reason"),
+        message=payload_dict.get("message"),
+        conditions=payload_dict.get("conditions", []),
+        timestamp=payload_dict.get("timestamp"),
+        tier=payload_dict.get("tier"),
+    )
 
 async def connect_rabbitmq():
     """Keep trying to connect to RabbitMQ until success."""
@@ -104,9 +118,11 @@ async def process_event(channel: aio_pika.Channel, payload: Payload, exchange_na
     """Send event to RabbitMQ if relevant."""
 
     event_type = payload.type 
+
     
-    if event_type in to_be_processed_events or payload.reason in to_be_processed_events:
-        message_body = json.dumps(payload).encode()
+    if event_type in to_be_processed_events or any(
+    reason and reason in payload.reason for reason in to_be_processed_events if payload.reason):
+        message_body = payload.model_dump_json().encode()
         event_key = event_type if event_type in to_be_processed_events else payload.reason
         namespace = payload.namespace or "cluster"
         routing_key = f"{namespace}.{resource_Name}.{event_key.lower()}"
@@ -118,24 +134,31 @@ async def process_event(channel: aio_pika.Channel, payload: Payload, exchange_na
             ),
             routing_key=routing_key,
         )
-        logger.info(f"Published {resource_Name} {payload.type}:{payload.reason} for {payload.name}")
+        reason_str = f"/{payload.reason}" if payload.reason else ""
 
+        logger.info(f"Published {resource_Name} {payload.type}:{reason_str} for {payload.name}")
 
+async def stream_k8s_events(api_function, namespace: str):
+    w = watch.Watch()
 
-async def stream_k8s_events(api_function, namespace: str, w:watch.Watch):
-    """Wrapper to turn blocking watch into async generator."""
-    # w = watch.Watch()
+    def sync_stream():
+        if namespace:
+            yield from w.stream(api_function, namespace=namespace, timeout_seconds=30)
+        else:
+            yield from w.stream(api_function, timeout_seconds=30)
+
     while True:
         try:
-            if namespace :
-                for event in w.stream(api_function, namespace=namespace):
+            # run the sync generator in a background thread
+            iterator = sync_stream()
+            while True:
+                try:
+                    event = await asyncio.to_thread(lambda: next(iterator))
                     yield event
-            else: 
-                #Clsuter wide function
-                for event in w.stream(api_function):
-                    yield event
+                except StopIteration:
+                    break
         except Exception as e:
-            logger.error(f"Watch failed: {e}, retrying in 5 seconds...")
-            time.sleep(5)
+            logger.error(f"Watch failed: {e}, retrying in 5s...")
+            await asyncio.sleep(5)
         finally:
             w.stop()

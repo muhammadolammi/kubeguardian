@@ -3,9 +3,11 @@ import asyncio
 import logging
 import sys
 from kubernetes import client, config, watch
+from kubernetes.client import ApiClient
 import aio_pika
 from ..helpers import process_event, connect_rabbitmq,stream_k8s_events, serialize_event_obj, classify_event
-shutdown_event = asyncio.Event()
+shutdown_event = asyncio.Event() 
+serializer = ApiClient()
 
 # shutdown_event = asyncio.Event()
 
@@ -61,22 +63,24 @@ async def pub(namespace: str, RESOURCE_NAME:str, channel):
     if not api_function:
         logger.info("Invalid resource name provided")
         return
-    w = watch.Watch()
+    logger.info("Starting Kubernetes watch...")
     
 
     while True:
+
         try:
-            logger.info("Starting Kubernetes watch...")
+            
             if RESOURCE_NAME in ["Node", "PersistentVolume"]:
-                # Stream cluster wide resorces
-                async for event in stream_k8s_events(api_function=api_function, namespace=None, w=w):
-                    payload = serialize_event_obj(event, RESOURCE_NAME)
-                    await process_event(channel, payload, exchange_name, RESOURCE_NAME, EVENTS_TO_STREAM)
-            else:    
-                async for event in stream_k8s_events(api_function=api_function, namespace=namespace, w=w):
-                    payload = serialize_event_obj(event, RESOURCE_NAME)
-                    await process_event(channel, payload, exchange_name, RESOURCE_NAME, EVENTS_TO_STREAM)
-        
+                namespace=None
+        # Stream cluster wide resorces
+            async for event in stream_k8s_events(api_function=api_function, namespace=namespace):
+                if shutdown_event.is_set():
+                    break 
+                logger.info(f"RAW EVENT: type={event['type']} obj={event['object'].kind} name={event['object'].metadata.name}")
+
+                payload = serialize_event_obj(event, RESOURCE_NAME)
+                await process_event(channel, payload, exchange_name, RESOURCE_NAME, EVENTS_TO_STREAM)
+            
         except Exception as e:
             logger.error(f"Failed to publish a {RESOURCE_NAME} event. error: {e}, retrying in 5 seconds...")
             await asyncio.sleep(5)
@@ -96,7 +100,7 @@ async def main():
         await channel.declare_exchange(
             exchange_name, aio_pika.ExchangeType.TOPIC, durable=True
         )
-        await asyncio.gather(
+        await asyncio.gather( 
             pub(authorized_namespace, "Deployment", channel),
             pub(authorized_namespace, "Pod", channel),
             pub(authorized_namespace, "ReplicaSet", channel),
@@ -117,4 +121,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Interrupted")
-        sys.exit(0)
+        shutdown_event.set()
