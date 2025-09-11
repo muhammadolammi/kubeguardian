@@ -138,7 +138,7 @@ async def process_event(channel: aio_pika.Channel, payload: Payload, exchange_na
 
         logger.info(f"Published {resource_Name} {payload.type}:{reason_str} for {payload.name}")
 
-async def stream_k8s_events(api_function, namespace: str):
+async def stream_k8s_events(api_function, namespace: str | None):
     w = watch.Watch()
 
     def sync_stream():
@@ -147,16 +147,20 @@ async def stream_k8s_events(api_function, namespace: str):
         else:
             yield from w.stream(api_function, timeout_seconds=30)
 
+    def safe_next(it):
+        try:
+            return next(it)
+        except StopIteration:
+            return None
+
     while True:
         try:
-            # run the sync generator in a background thread
             iterator = sync_stream()
             while True:
-                try:
-                    event = await asyncio.to_thread(lambda: next(iterator))
-                    yield event
-                except StopIteration:
+                event = await asyncio.to_thread(safe_next, iterator)
+                if event is None:  # iterator exhausted
                     break
+                yield event
         except Exception as e:
             logger.error(f"Watch failed: {e}, retrying in 5s...")
             await asyncio.sleep(5)

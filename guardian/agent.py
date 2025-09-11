@@ -47,7 +47,7 @@ def get_chat_agent(namespace:str):
         model="gemini-2.0-flash",
         output_key="chat_response"
     )
-root_agent = get_remediator_agent("bank-of-anthos")
+root_agent = get_chat_agent("bank-of-anthos")
 # root_agent = Agent(
 #     name="root_agent",
 #     instruction="You are kubectl ai wrapper, you can do everything kubectl can do using natural language",

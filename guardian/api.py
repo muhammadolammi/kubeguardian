@@ -48,6 +48,10 @@ async def run_agent(request: AgentRequest):
         }
 
         # Run agent asynchronously
+        logger.info(f"Agent type: {request.agent_type}, Namespace: {request.namespace}")
+        logger.info(f"Session data: {session_data}")
+        logger.info(f"Message: {request.message[:200]}")  # first 200 chars
+        logger.info(f"Agent instance: {agent}")
         response = await run(agent, session_data, request.message)
         return {"response": response}
 

@@ -1,13 +1,15 @@
+from const import get_ENV
+AUTHORIZED_DIRECTORY = get_ENV("AUTHORIZED_DIRECTORY")
+
 
 import os.path as path
 import os
-from typing import Optional
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 #TODO this is hardly coded , get from env.
-AUTHORIZED_DIRECTORY = "/home/muhammad/hackathon/kubeguardian/apps/bank-of-anthos/kubernetes-manifests"
+
 
 async def get_all_manifests() -> str:
     """
@@ -45,7 +47,7 @@ def get_absolute_path(name: str) -> str:
     """
     file_name = name + ".yaml"
     return path.join(AUTHORIZED_DIRECTORY, file_name)
-
+ 
 
 async def get_manifest(file_name: str) -> str:
     """

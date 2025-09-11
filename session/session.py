@@ -1,5 +1,6 @@
 from const import get_ENV
 db_url = get_ENV("DB_URL")
+import asyncio
 
 import uuid
 from google.adk.sessions import DatabaseSessionService
@@ -27,36 +28,40 @@ async def create_new_session( user_id:str ):
         state=initial_state
     )
     logger.info(f"✅ Created new session: {session_id}")
-    return  session_id
+    return  session
 
 
 
 
-async def get_session( session_id:str ):
+async def get_session( session_id:str, user_id:str ):
     """
     Get  session with a session ID.
     """
     
-    return session_service.get_session(session_id=session_id)
+    return await session_service.get_session(session_id=session_id, app_name=APP_NAME, user_id=user_id)
 
-async def get_session_by_user_id(user_id:str):
-    return session_service.get_session(user_id=user_id)
 
-async def delete_session_by_user_id(user_id:str ):
+
+
+async def delete_session( session_id:str, user_id:str, app_name:str ):
     """
     Delete  session .
     """
     
-    session_service.delete_session(user_id=user_id)
+    await session_service.delete_session(session_id=session_id, user_id=user_id, app_name=app_name)
 
 
 
-async def delete_session( session_id:str ):
-    """
-    Delete  session .
-    """
-    
-    session_service.delete_session(session_id=session_id)
 
 
 
+
+# async def main():
+#     session = await get_session("session_6ef4a4b3", "remediator")
+#     print(type(session))
+#     print(session)
+
+
+
+
+# asyncio.run(main())

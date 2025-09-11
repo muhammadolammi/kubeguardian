@@ -29,6 +29,8 @@ spec:
               secretKeyRef:
                 name: gemini-secret
                 key: GEMINI_API_KEY
+          - name: AUTHORIZED_DIRECTORY
+            value: "/app/manifests"
 
 
 --- 

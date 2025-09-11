@@ -2,7 +2,6 @@
 import asyncio
 import json
 from dotenv import load_dotenv
-import logging
 # MCP Imports
 from mcp import types as mcp_types
 from mcp.server.lowlevel import Server, NotificationOptions
@@ -19,22 +18,6 @@ from const import logger
 
 # --- Load environment variables ---
 load_dotenv()
-def get_chat_mode() -> bool:
-    try:
-        with open("chat.env", "r") as f:
-            for line in f:
-                if line.startswith("CHAT_MODE"):
-                    # Extract value after '=' and convert to bool
-                    value = line.split("=", 1)[1].strip()
-                    return value.lower() == "true"
-    except FileNotFoundError:
-        return False  # Default if file missing
-
-    return False  # Default fallback
-
-chat_mode = get_chat_mode()
-logging.disable(logging.CRITICAL if chat_mode else logging.NOTSET)
-
 
 # --- Prepare ADK Tools ---
 logger.info("Initializing ADK tools...")

@@ -3,6 +3,9 @@ from const import get_ENV
 AI_AGENT_URL = get_ENV("AI_AGENT_URL")
 import logging 
 import sys
+from aio_pika import Message
+
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,7 +19,9 @@ import json
 import os
 import sys
 import aio_pika
-from session.session import create_new_session, delete_session_by_user_id, get_session_by_user_id
+from session.session import create_new_session, delete_session
+from google.adk.sessions import DatabaseSessionService
+
 import httpx 
 from ..helpers import connect_rabbitmq
 from ..types import Payload
@@ -33,10 +38,13 @@ RESOURCE_EVENTS_MAP = {
     "PersistentVolumeClaim": ["Bound", "Unbound", "Released", "Failed", "Deleted"],
     }   
 
+MAX_AGENT_RETRIES = 3
+MAX_RABBITMQ_RETRIES = 2
 
 # Batching config
 BATCH_INTERVAL = 60  # seconds
 BATCH_SIZE = 20         # max events per batch
+
 
 buffer = []  # shared event buffer
 def format_payloads_for_ai(payloads: List[Payload]) -> str:
@@ -61,34 +69,88 @@ def format_payloads_for_ai(payloads: List[Payload]) -> str:
         messages.append(msg)
 
     return "\n".join(messages)
-
-async def send_events_to_Agent(namespace:str, data:List[Payload]):
-    """Send current bacth to AI."""
+async def send_events_to_agent(
+    namespace: str,
+    data: List[Payload],
+    session: DatabaseSessionService,
+    channel,
+    retry_count: int = 0,
+):
+    """Send current batch to AI agent, with retries + RabbitMQ fallback."""
     message = format_payloads_for_ai(data)
-    session =await get_session_by_user_id("remediator")
     payload = {
         "agent_type": "remediator",
         "namespace": namespace,
-        "user_id": "remediator",
         "session_id": session.id,
-        "message": message  # send full message as text
+        "user_id": session.user_id,
+        "message": message,
     }
 
-    # Send to AI agent service
     async with httpx.AsyncClient() as client:
-        try:
-            resp = await client.post(AI_AGENT_URL, json=payload, timeout=60)
-            resp.raise_for_status()
-            data = resp.json()
-            agent_response = data.get("response")
-            return agent_response
-        except httpx.HTTPError as e:
-            print(f"[!] Failed to call AI agent: {e}")
-            return f"⚠️ AI agent call failed: {str(e)}"
-    
+        tries = 0
+        while tries < MAX_AGENT_RETRIES:
+            try:
+                resp = await client.post(
+                    f"{AI_AGENT_URL}/run-agent",
+                    json=payload,
+                    timeout=60,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                agent_response: str = data.get("response", "")
+
+                if agent_response.startswith("⚠️ Agent failed"):
+                    tries += 1
+                    await asyncio.sleep(2**tries)  # exponential backoff
+                    continue
+
+                # ✅ Success
+                logger.info(f"[AI Response] {agent_response}")
+                return agent_response
+
+            except httpx.HTTPStatusError as e:
+                status = e.response.status_code
+                if status == 429:  # Quota exceeded
+                    tries += 1
+                    sleep_time = 2**tries
+                    logger.warning(
+                        f"Quota error (429). Sleeping {sleep_time}s before retry..."
+                    )
+                    await asyncio.sleep(sleep_time)
+                    continue
+                elif 500 <= status < 600:
+                    tries += 1
+                    await asyncio.sleep(2**tries)
+                    continue
+                else:
+                    logger.error(f"Unrecoverable HTTP error: {e}")
+                    break
+            except httpx.HTTPError as e:
+                logger.error(f"Transport error: {e}")
+                tries += 1
+                await asyncio.sleep(2**tries)
+
+    # ❌ All retries failed — republish to RabbitMQ
+    if retry_count < MAX_RABBITMQ_RETRIES:
+        logger.warning("All retries failed. Republishing to RabbitMQ...")
+        exchange = await channel.declare_exchange(
+            exchange_name, aio_pika.ExchangeType.TOPIC, passive=True
+        )
+        await exchange.publish(
+            Message(
+                body=json.dumps([p.model_dump() for p in data]).encode(),
+                headers={"x-retry-count": retry_count + 1},
+            ),
+            routing_key=f"{namespace}.ai.retry",
+        )
+    else:
+        logger.error(f"Event permanently failed after retries: {payload}")
+        # TODO: insert into failure_db.save(payload)
 
 
-async def flush_buffer(namespace:str):
+async def flush_buffer(
+    namespace: str, session: DatabaseSessionService, channel
+):
     """Flush buffered events to AI agent."""
     global buffer
     if not buffer:
@@ -96,62 +158,92 @@ async def flush_buffer(namespace:str):
     try:
         batch = buffer.copy()
         buffer.clear()
-        # 🔑 Forward the batch to AI agent here
         logger.info(f"Sending batch of {len(batch)} events to AI")
-        agent_response=await send_events_to_Agent(namespace,batch)
-        print(f"[AI Response] {agent_response}")
-
+        await send_events_to_agent(namespace, batch, session, channel)
     except Exception as e:
         logger.error(f"Failed to flush buffer: {e}")
 
 
-async def periodic_flusher(namespace:str):
+async def periodic_flusher(
+    namespace: str, session: DatabaseSessionService, channel
+):
     """Background task to flush buffer every BATCH_INTERVAL seconds."""
-    while True:
-        await asyncio.sleep(BATCH_INTERVAL)
-        # SEssion should only last long for that time, we specified, we can delete the session here and recreate
-        delete_session_by_user_id("remediator")
-        await create_new_session("remediator")
-        await flush_buffer(namespace)
+    await asyncio.sleep(BATCH_INTERVAL)
+    await flush_buffer(namespace, session, channel)
 
-async def sub( namespace: str, channel):
-    """Async subscriber that listens for deployment events."""
-    exchange = await channel.declare_exchange(exchange_name, aio_pika.ExchangeType.TOPIC)
 
-    # Queue to capture ALL events (use wildcards)
-    queue = await channel.declare_queue("ai_agent_queue", durable=True)
-    #Bind everything on our namespace
-    await queue.bind(exchange, routing_key=f"{namespace}.*.*")  # "#" = match everything
-    #Bind cluster wide logs
-    await queue.bind(exchange, routing_key=f"cluster.*.*")
+async def sub(namespace: str, queue, session: DatabaseSessionService, channel):
+    """Async subscriber that listens for deployment events and forwards them to AI agent."""
+    asyncio.create_task(periodic_flusher(namespace, session, channel))
 
-    # Start background flusher
-    asyncio.create_task(periodic_flusher(namespace))
     async with queue.iterator() as queue_iter:
         async for message in queue_iter:
             async with message.process():  # auto-ack if no exception
                 try:
                     payload = json.loads(message.body.decode())
-                    # 🔑 Forward payload to AI agent here
-                    logger.info(f"Received event for AI: {payload}")
+                    retry_count = message.headers.get("x-retry-count", 0)
+
+                    logger.info(
+                        f"Received event for AI. "
+                        f"Resource: {payload['resource']}, "
+                        f"Event_Type: {payload['type']}, "
+                        f"Namespace: {payload['namespace']}, "
+                        f"Retry: {retry_count}"
+                    )
+
                     buffer.append(Payload(**payload))
-                    # Flush immediately if buffer too big
+
+                    # Flush immediately if resource is deleted
+                    if payload["type"] == "DELETED":
+                        await flush_buffer(namespace, session, channel)
+
+                    # Flush if buffer is too big
                     if len(buffer) >= BATCH_SIZE:
-                        await flush_buffer(namespace)
+                        await flush_buffer(namespace, session, channel)
+
                 except Exception as e:
                     logger.error(f"Failed to process message: {e}")
-                    # we can republish the messages here and retry for x-time
-                    #message.nack(requeue=True) 
+
+                    if retry_count < MAX_RABBITMQ_RETRIES:
+                        exchange = await channel.declare_exchange(
+                            exchange_name, aio_pika.ExchangeType.TOPIC
+                        )
+                        await exchange.publish(
+                            Message(
+                                body=message.body,
+                                headers={"x-retry-count": retry_count + 1},
+                            ),
+                            routing_key=f"{namespace}.ai.retry",
+                        )
+                        logger.warning(
+                            f"Republished failed message with retry {retry_count+1}"
+                        )
+                    else:
+                        logger.error(
+                            f"Message permanently failed after {retry_count} retries: {message.body.decode()}"
+                        )
+                        # TODO: Insert into failure_db.save(payload)
 
 async def async_main():
     try:
-        await create_new_session("remediator")
+        session = await create_new_session("remediator")
         authorized_namespace = "default"
         connection, channel = await connect_rabbitmq()
-        await sub(
-            authorized_namespace, channel
-        )
+        exchange = await channel.declare_exchange(exchange_name, aio_pika.ExchangeType.TOPIC, passive=True)
+
+        # Queue to capture ALL events (use wildcards)
+        queue = await channel.declare_queue("ai_agent_queue", durable=True)
+        #Bind everything on our namespace
+        await queue.bind(exchange, routing_key=f"{authorized_namespace}.*.*")  # "#" = match everything
+        #Bind cluster wide logs
+        await queue.bind(exchange, routing_key=f"cluster.*.*")
+
+        await sub(authorized_namespace, queue, session, channel )
     finally:
+        #Delete session
+        await delete_session(session_id=session.id, user_id=session.user_id, app_name=session.app_name)
+
+        # Close connections
         await channel.close()
         await connection.close()
 
