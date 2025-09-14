@@ -1,5 +1,5 @@
+from typing import Any, Optional
 from pydantic import BaseModel
-from typing import Optional
 
 class Payload(BaseModel):
     resource: str
@@ -11,3 +11,6 @@ class Payload(BaseModel):
     conditions: list[dict] = []
     timestamp: Optional[str] = None
     tier: Optional[str] = None
+    labels: dict[str, str] = {}              # object labels
+    annotations: dict[str, str] = {}         # object annotations
+    extra: dict[str, Any] = {}               # kind-specific info (pods, services, ingress, etc.)

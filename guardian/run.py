@@ -1,15 +1,13 @@
-from const import get_ENV
-db_url = get_ENV("DB_URL")
 from google.adk.agents import Agent
 from google.adk.runners import Runner
 from google.adk.sessions import DatabaseSessionService
 from google.genai import types  # For message parts
 from const import APP_NAME
+from session.session import session_service
 
 
 
 
-session_service = DatabaseSessionService(db_url=db_url)
 
 def get_runner(root_agent: Agent) -> Runner:
     """Return a Runner tied to a specific session service."""

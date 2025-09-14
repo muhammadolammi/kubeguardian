@@ -1,5 +1,4 @@
 import asyncio
-from stream import stream_pods , stream_deployments
 import argparse
 from const import   logger
 from guardian.run import run

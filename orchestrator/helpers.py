@@ -5,10 +5,9 @@ from typing import Any
 from .types import Payload
 import aio_pika 
 import logging
+from datetime import datetime
 import sys 
-import json
 import asyncio
-import time
 from kubernetes import watch
 
 
@@ -19,14 +18,38 @@ logging.basicConfig(
     stream=sys.stderr,
 )
 logger = logging.getLogger(__name__)
-
-def classify_event(reason: str) -> str:
-    if reason in ["CrashLoopBackOff", "OOMKilled", "ImagePullBackOff", "NodeNotReady"]:
-        return "critical"
-    elif reason in ["BackOff", "Unhealthy", "IngressBackendNotFound"]:
-        return "important"
-    else:
+def classify_event(reason: str | None, event_type: str | None = None) -> str:
+    """
+    Classify an event severity based on reason and optionally event_type.
+    """
+    if not reason:
+        # Handle special case: deleted events
+        if event_type and event_type.lower() == "deleted":
+            return "important"
         return "informational"
+
+    critical_reasons = {"CrashLoopBackOff", "OOMKilled", "ImagePullBackOff", "NodeNotReady"}
+    important_reasons = {"BackOff", "Unhealthy", "IngressBackendNotFound"}
+
+    if reason in critical_reasons:
+        return "critical"
+    elif reason in important_reasons:
+        return "important"
+    return "informational"
+
+
+def format_timestamp(ts: Any) -> str | None:
+    """Convert timestamp object to ISO 8601 string if possible."""
+    if ts is None:
+        return None
+    if isinstance(ts, str):
+        return ts  # already a string
+    if isinstance(ts, datetime):
+        return ts.isoformat()
+    try:
+        return datetime.fromisoformat(str(ts)).isoformat()
+    except Exception:
+        return str(ts)  # fallback to string
 
 def serialize_event_obj(event: dict[str, Any], resource: str) -> Payload | None:
     if not event:
@@ -34,58 +57,129 @@ def serialize_event_obj(event: dict[str, Any], resource: str) -> Payload | None:
 
     event_type = event.get("type")
     obj = event.get("object")
-
     if obj is None:
         return None
 
-    # Try to extract metadata safely
-    name = getattr(getattr(obj, "metadata", None), "name", None)
-    namespace = getattr(getattr(obj, "metadata", None), "namespace", None)
+    kind = getattr(obj, "kind", None)
+    metadata = getattr(obj, "metadata", None)
 
-    # Case 1: Kubernetes Event resource
-    if getattr(obj, "kind", None) == "Event":
+    # Safe metadata extraction
+    name = getattr(metadata, "name", None)
+    namespace = getattr(metadata, "namespace", None)
+    labels = getattr(metadata, "labels", {}) or {}
+    annotations = getattr(metadata, "annotations", {}) or {}
+
+    # Case 1: Kubernetes Event
+    if kind == "Event":
+        ts = getattr(obj, "last_timestamp", None) or getattr(obj, "event_time", None)
         payload_dict = {
             "name": getattr(obj.involved_object, "name", None),
             "type": event_type,
             "namespace": getattr(obj.involved_object, "namespace", None),
             "reason": getattr(obj, "reason", None),
             "message": getattr(obj, "message", ""),
-            "timestamp": getattr(obj, "last_timestamp", None) or getattr(obj, "event_time", None),
+            "timestamp": format_timestamp(ts),
             "conditions": [],
         }
 
-    # Case 2: Workloads & cluster objects
+    # Case 2: Workloads, Configs, Networking
     else:
-        # Handle conditions defensively
+        # Extract conditions if present
         conditions = []
-        if hasattr(obj, "status") and getattr(obj.status, "conditions", None):
+        status_obj = getattr(obj, "status", None)
+        if status_obj and getattr(status_obj, "conditions", None):
             conditions = [
                 {
                     "type": getattr(cond, "type", None),
                     "status": getattr(cond, "status", None),
                     "reason": getattr(cond, "reason", None),
                 }
-                for cond in obj.status.conditions
+                for cond in status_obj.conditions
             ]
 
+        reason = event.get("reason") or next(
+            (getattr(cond, "reason", None) for cond in conditions if getattr(cond, "reason", None)),
+            None,
+        )
+
+        message = event.get("message") or ""
+
+        # Special handling by kind
+        extra_info = {}
+        if kind == "Pod":
+            spec = getattr(obj, "spec", None)
+            if spec:
+                containers = [
+                    {"name": getattr(c, "name", None), "image": getattr(c, "image", None)}
+                    for c in getattr(spec, "containers", [])
+                ]
+                extra_info["containers"] = containers
+        elif kind == "Deployment":
+            spec = getattr(obj, "spec", None)
+            status = getattr(obj, "status", None)
+            if spec and status:
+                extra_info["replicas"] = {
+                    "desired": getattr(spec, "replicas", None),
+                    "available": getattr(status, "available_replicas", None),
+                    "updated": getattr(status, "updated_replicas", None),
+                }
+        elif kind == "Service":
+            spec = getattr(obj, "spec", None)
+            if spec:
+                extra_info["type"] = getattr(spec, "type", None)
+                extra_info["ports"] = [
+                    {
+                        "port": getattr(p, "port", None),
+                        "targetPort": getattr(p, "target_port", None),
+                        "protocol": getattr(p, "protocol", None),
+                    }
+                    for p in getattr(spec, "ports", [])
+                ]
+        elif kind == "Node":
+            status = getattr(obj, "status", None)
+            if status:
+                extra_info["capacity"] = getattr(status, "capacity", {})
+                extra_info["allocatable"] = getattr(status, "allocatable", {})
+        elif kind == "ConfigMap":
+            data = getattr(obj, "data", None)
+            if data:
+                extra_info["data_keys"] = list(data.keys())
+        elif kind == "Ingress":
+            spec = getattr(obj, "spec", None)
+            status = getattr(obj, "status", None)
+            if spec:
+                rules = [
+                    {
+                        "host": getattr(r, "host", None),
+                        "paths": [
+                            getattr(p, "path", None)
+                            for p in getattr(getattr(r, "http", None), "paths", []) or []
+                        ],
+                    }
+                    for r in getattr(spec, "rules", []) or []
+                ]
+                extra_info["rules"] = rules
+            if status:
+                extra_info["load_balancer"] = getattr(status, "load_balancer", None)
+
+        ts = getattr(obj, "last_timestamp", None) or getattr(obj, "event_time", None) or getattr(metadata, "creation_timestamp", None)
         payload_dict = {
             "name": name,
             "type": event_type,
-            "namespace": namespace,   # may be None for cluster-scoped objects
-            "reason": event.get("reason")
-                or next(
-                    (getattr(cond, "reason", None) for cond in conditions if getattr(cond, "reason", None)),
-                    None,
-                ),
-            "message": event.get("message") or "",
-            "timestamp": event.get("lastTimestamp") or event.get("eventTime") or None,
+            "namespace": namespace,
+            "reason": reason,
+            "message": message,
+            "timestamp": format_timestamp(ts),
             "conditions": conditions,
+            "labels": labels,
+            "annotations": annotations,
+            "extra": extra_info,
         }
 
     # Add severity/tier classification
-    payload_dict["tier"] = classify_event(payload_dict.get("reason"))
+    payload_dict["tier"] = classify_event(payload_dict.get("reason"), event_type)
 
-    # Build Pydantic Payload (namespace is optional now)
+    # Build Payload (Pydantic)
     return Payload(
         resource=resource,
         type=payload_dict["type"],
@@ -96,8 +190,10 @@ def serialize_event_obj(event: dict[str, Any], resource: str) -> Payload | None:
         conditions=payload_dict.get("conditions", []),
         timestamp=payload_dict.get("timestamp"),
         tier=payload_dict.get("tier"),
+        labels=payload_dict.get("labels", {}),
+        annotations=payload_dict.get("annotations", {}),
+        extra=payload_dict.get("extra", {}),
     )
-
 async def connect_rabbitmq():
     """Keep trying to connect to RabbitMQ until success."""
     while True:
@@ -118,8 +214,6 @@ async def process_event(channel: aio_pika.Channel, payload: Payload, exchange_na
     """Send event to RabbitMQ if relevant."""
 
     event_type = payload.type 
-
-    
     if event_type in to_be_processed_events or any(
     reason and reason in payload.reason for reason in to_be_processed_events if payload.reason):
         message_body = payload.model_dump_json().encode()

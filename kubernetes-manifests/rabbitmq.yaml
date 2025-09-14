@@ -23,9 +23,15 @@ spec:
             - containerPort: 15672 # Web UI
           env:
             - name: RABBITMQ_DEFAULT_USER
-              value: guest
+              valueFrom:
+                secretKeyRef:
+                  name: kubeguardian-secrets
+                  key: POSTGRES_USER
             - name: RABBITMQ_DEFAULT_PASS
-              value: guest
+              valueFrom:
+                secretKeyRef:
+                  name: kubeguardian-secrets
+                  key: POSTGRES_PASSWORD
           resources:
             requests:
               memory: "256Mi"

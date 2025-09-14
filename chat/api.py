@@ -2,9 +2,9 @@ from const import get_ENV
 AI_AGENT_URL = get_ENV("AI_AGENT_URL")
 
 
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from guardian.run import run
 from session.session import create_new_session, get_session, delete_session
 import httpx  
 
@@ -18,7 +18,6 @@ class ChatRequest(BaseModel):
     session_id: str
     user_id: str
     message: str
-    namespace: str
 
 @app.post("/session")
 async def create_session(req: SessionRequest):
@@ -42,7 +41,6 @@ async def chat(req: ChatRequest):
     # Call agent service
     payload = {
         "agent_type": "chat",
-        "namespace": req.namespace,
         "user_id": req.user_id,
         "session_id": req.session_id,
         "message": req.message
@@ -50,7 +48,7 @@ async def chat(req: ChatRequest):
 
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.post(AI_AGENT_URL, json=payload, timeout=60)
+            resp = await client.post(f"{AI_AGENT_URL}/run-agent", json=payload, timeout=60)
             resp.raise_for_status()
             data = resp.json()
             return {"response": data.get("response")}

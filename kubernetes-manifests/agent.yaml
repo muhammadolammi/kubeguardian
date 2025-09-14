@@ -3,34 +3,39 @@ apiVersion: apps/v1
 kind: Deployment
 
 metadata:
-  name: ai-agent
+  name: agent
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ai-agent
+      app: agent
   template:
     metadata:
       labels:
-        app: ai-agent
+        app: agent
     spec:
       containers:
-      - name: ai-agent
+      - name: agent
         image: kubeguardian/agent:latest   # Your AI agent Docker image
         imagePullPolicy: IfNotPresent
 
         ports: 
           - containerPort: 8081 
         env:
-          - name: DB_URL
-            value: postgresql://admin:admin123@accounts-db:5432/kubeguardian
+          - name: SESSION_DB_URL
+            valueFrom:
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: SESSION_DB_URL
           - name: GEMINI_API_KEY
             valueFrom:
               secretKeyRef:
-                name: gemini-secret
+                name: kubeguardian-secrets
                 key: GEMINI_API_KEY
           - name: AUTHORIZED_DIRECTORY
             value: "/app/manifests"
+          - name: AUTHORIZED_NAMESPACE
+            value: bank-of-anthos
 
 
 --- 
@@ -39,10 +44,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ai-agent
+  name: agent
 spec:
   selector:
-    app: ai-agent
+    app: agent
   ports:
     - protocol: TCP
       port: 8081

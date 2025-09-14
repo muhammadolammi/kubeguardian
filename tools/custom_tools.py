@@ -7,6 +7,7 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from const import logger
 
 #TODO this is hardly coded , get from env.
 
@@ -71,43 +72,52 @@ async def get_manifest(file_name: str) -> str:
     except Exception as e:
         return f"Error: {e}"
 
-def send_mail(smtp_server: str, smtp_port: int, username: str, password: str, sender: str, recipient: str, title: str, body: str):
-    """
+# def send_mail(smtp_server: str, smtp_port: int, username: str, password: str, sender: str, recipient: str, title: str, body: str):
+#     """
+#     Send an email with the given title and body.
+
+#     Args:
+#         smtp_server (str): SMTP server address (e.g., "smtp.gmail.com").
+#         smtp_port (int): SMTP server port (e.g., 587 for TLS).
+#         username (str): SMTP username (usually your email).
+#         password (str): SMTP password or app-specific password.
+#         sender (str): From email address.
+#         recipient (str): To email address.
+#         title (str): Email subject.
+#         body (str): Email body (plain text).
+#     """
+#     try:
+#         # Create email container
+#         msg = MIMEMultipart()
+#         msg["From"] = sender
+#         msg["To"] = recipient
+#         msg["Subject"] = title
+
+#         # Attach body as plain text
+#         msg.attach(MIMEText(body, "plain"))
+
+#         # Send mail
+#         with smtplib.SMTP(smtp_server, smtp_port) as server:
+#             server.starttls()  # Secure connection
+#             server.login(username, password)
+#             server.sendmail(sender, recipient, msg.as_string())
+
+#         print(f"✅ Email sent to {recipient}: {title}")
+
+#     except Exception as e:
+#         print(f"❌ Failed to send email: {e}")
+
+
+def sendmail(title:str, body:str):
+    """"
     Send an email with the given title and body.
-
     Args:
-        smtp_server (str): SMTP server address (e.g., "smtp.gmail.com").
-        smtp_port (int): SMTP server port (e.g., 587 for TLS).
-        username (str): SMTP username (usually your email).
-        password (str): SMTP password or app-specific password.
-        sender (str): From email address.
-        recipient (str): To email address.
-        title (str): Email subject.
-        body (str): Email body (plain text).
+        title: str
+        body: str
     """
-    try:
-        # Create email container
-        msg = MIMEMultipart()
-        msg["From"] = sender
-        msg["To"] = recipient
-        msg["Subject"] = title
+    logger.info(f"Email sent title: {title}, body: {body}")
 
-        # Attach body as plain text
-        msg.attach(MIMEText(body, "plain"))
-
-        # Send mail
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()  # Secure connection
-            server.login(username, password)
-            server.sendmail(sender, recipient, msg.as_string())
-
-        print(f"✅ Email sent to {recipient}: {title}")
-
-    except Exception as e:
-        print(f"❌ Failed to send email: {e}")
-
-
-def get_devs_name()-> str:
+def get_devs_name()-> str: 
     """"
     Get the project developers name.
 

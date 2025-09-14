@@ -24,18 +24,6 @@ def get_remediator_agent(namespace:str ):
         output_key="remediator_output"
     )
 
-# def get_orchestrator_agent(namespace:str):
-#     return Agent(
-#         name="orchestrator_agent",
-#         description="Coordinates Observer, RCA, and Remediator agents for self-healing operations.",
-#         instruction=orchestrator_prompt(namespace),
-#         sub_agents=[
-#             make_rca_agent(),
-#             make_remediator_agent(namespace)
-#         ],
-#         model="gemini-2.0-flash",
-#         output_key= "orchestrator_response"
-#     )
 
 
 def get_chat_agent(namespace:str):
@@ -48,10 +36,5 @@ def get_chat_agent(namespace:str):
         output_key="chat_response"
     )
 root_agent = get_chat_agent("bank-of-anthos")
-# root_agent = Agent(
-#     name="root_agent",
-#     instruction="You are kubectl ai wrapper, you can do everything kubectl can do using natural language",
-#     tools=[kubectl_ai_mcp_toolset],
-#     model="gemini-2.5-flash",
-# )
+
 

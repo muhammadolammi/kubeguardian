@@ -19,11 +19,20 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: POSTGRES_USER
-            value: "admin"
+            valueFrom:
+              secretKeyRef:
+                name:  kubeguardian-secrets
+                key: POSTGRES_USER
           - name: POSTGRES_PASSWORD
-            value: "admin123"
+            valueFrom:
+              secretKeyRef:
+                name:  kubeguardian-secrets
+                key: POSTGRES_PASSWORD
           - name: POSTGRES_DB
-            value: "kubeguardian"
+            valueFrom:
+              secretKeyRef:
+                name:  kubeguardian-secrets
+                key: POSTGRES_DB
         ports:
           - containerPort: 5432
         volumeMounts:
@@ -36,21 +45,6 @@ spec:
 
 
 ---
-
-
-# postgres-pv.yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: postgres-pv
-spec:
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: /mnt/data/postgres   # Local path in Minikube VM
----
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -60,7 +54,8 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 1Gi
+  storageClassName: standard
 
 ---
 # postgres-service.yaml

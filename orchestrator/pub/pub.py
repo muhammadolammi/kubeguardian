@@ -1,11 +1,13 @@
+from const import get_ENV
+authorized_namespace = get_ENV("AUTHORIZED_NAMESPACE")
 
 import asyncio
 import logging
 import sys
-from kubernetes import client, config, watch
+from kubernetes import client, config
 from kubernetes.client import ApiClient
 import aio_pika
-from ..helpers import process_event, connect_rabbitmq,stream_k8s_events, serialize_event_obj, classify_event
+from ..helpers import process_event, connect_rabbitmq,stream_k8s_events, serialize_event_obj
 shutdown_event = asyncio.Event() 
 serializer = ApiClient()
 
@@ -23,7 +25,6 @@ logger = logging.getLogger(__name__)
  # Load kube config
 try:
     logger.info("Loaded local config")
-
     config.load_kube_config() 
 except config.ConfigException:
     logger.info("Loaded in-cluster kubeconfig")
@@ -76,9 +77,10 @@ async def pub(namespace: str, RESOURCE_NAME:str, channel):
             async for event in stream_k8s_events(api_function=api_function, namespace=namespace):
                 if shutdown_event.is_set():
                     break 
-                logger.info(f"RAW EVENT: type={event['type']} obj={event['object'].kind} name={event['object'].metadata.name}")
 
                 payload = serialize_event_obj(event, RESOURCE_NAME)
+                logger.info(f"EVENT Payload: type={event['type']} obj={event['object'].kind} name={event['object'].metadata.name}, reason:{payload.reason}, tier:{payload.tier}")
+
                 await process_event(channel, payload, exchange_name, RESOURCE_NAME, EVENTS_TO_STREAM)
             
         except Exception as e:
@@ -93,23 +95,20 @@ async def pub(namespace: str, RESOURCE_NAME:str, channel):
 
 
 async def main():
-    authorized_namespace = "default"
     connection, channel = await connect_rabbitmq()
     try:
         await channel.set_qos(prefetch_count=1)
-        await channel.declare_exchange(
-            exchange_name, aio_pika.ExchangeType.TOPIC, durable=True
-        )
+        await channel.declare_exchange(exchange_name, aio_pika.ExchangeType.TOPIC, durable=True)
         await asyncio.gather( 
             pub(authorized_namespace, "Deployment", channel),
-            pub(authorized_namespace, "Pod", channel),
-            pub(authorized_namespace, "ReplicaSet", channel),
-            pub(authorized_namespace, "Node", channel),
-            pub(authorized_namespace, "Service", channel),
-            pub(authorized_namespace, "Ingress", channel),
-            pub(authorized_namespace, "ConfigMap", channel),
-            pub(authorized_namespace, "PersistentVolume", channel),
-            pub(authorized_namespace, "PersistentVolumeClaim", channel),
+            # pub(authorized_namespace, "Pod", channel),
+            # pub(authorized_namespace, "ReplicaSet", channel),
+            # pub(authorized_namespace, "Node", channel),
+            # pub(authorized_namespace, "Service", channel),
+            # pub(authorized_namespace, "Ingress", channel),
+            # pub(authorized_namespace, "ConfigMap", channel),
+            # pub(authorized_namespace, "PersistentVolume", channel),
+            # pub(authorized_namespace, "PersistentVolumeClaim", channel),
         )
     finally:
         await channel.close()

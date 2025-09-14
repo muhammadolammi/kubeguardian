@@ -7,7 +7,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 # Download the latest installer, install it and then remove it
 ADD https://astral.sh/uv/install.sh /install.sh
-RUN chmod -R 655 /install.sh && /install.sh && rm /install.sh
+RUN chmod -R 655 /install.sh && /install.sh && rm /install.sh 
+
 
 # Set up the UV environment path correctly
 ENV PATH="/root/.local/bin:${PATH}"
@@ -23,7 +24,6 @@ FROM python:3.13-slim-bookworm AS production
 
 
 
-RUN useradd --create-home dev
 WORKDIR /app
 
 COPY --from=builder /app/.venv .venv

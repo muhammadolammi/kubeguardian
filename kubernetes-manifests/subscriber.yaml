@@ -3,27 +3,32 @@ apiVersion: apps/v1
 kind: Deployment
 
 metadata:
-  name: chat
+  name: subscriber
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: chat
+      app: subscriber
   template:
     metadata:
       labels:
-        app: chat
+        app: subscriber
     spec:
       containers:
-      - name: chat
-        image: kubeguardian/chat:latest   # Replace with your built Docker image
+      - name: subscriber
+        image: kubeguardian/subscriber:latest   # Replace with your built Docker image
         imagePullPolicy: IfNotPresent
 
         ports: 
-          - containerPort: 8084
+          - containerPort: 8083
         env:
+          - name: RABBITMQ_URL
+            valueFrom: 
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: RABBITMQ_URL
           - name: SESSION_DB_URL
-            valueFrom:
+            valueFrom: 
               secretKeyRef:
                 name: kubeguardian-secrets
                 key: SESSION_DB_URL
@@ -31,21 +36,6 @@ spec:
             valueFrom: 
               secretKeyRef:
                 name: kubeguardian-secrets
-                key: AI_AGENT_URL   # AI agent service URL
-
-
----
-
-# chat-service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: chat
-spec:
-  selector:
-    app: chat
-  ports:
-    - protocol: TCP
-      port: 8084
-      targetPort: 8084
-  type: ClusterIP
+                key: AI_AGENT_URL  
+          - name: AUTHORIZED_NAMESPACE
+            value: bank-of-anthos

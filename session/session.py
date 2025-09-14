@@ -1,5 +1,5 @@
 from const import get_ENV
-db_url = get_ENV("DB_URL")
+session_db_url = get_ENV("SESSION_DB_URL")
 import asyncio
 
 import uuid
@@ -10,7 +10,7 @@ from const import APP_NAME
 from const import logger
 
 
-session_service = DatabaseSessionService(db_url=db_url)
+session_service = DatabaseSessionService(db_url=session_db_url)
 
 async def create_new_session( user_id:str ):
     """
