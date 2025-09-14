@@ -1,5 +1,5 @@
-FROM kubeguardian/base:latest
-
+FROM kubeguardian/base
+WORKDIR /app
 
 # Install kubectl-ai
 # Install OS packages (can be cached)
@@ -14,10 +14,7 @@ RUN tar -xzf /tmp/kubectl-ai.tar.gz -C /tmp \
     && mv /tmp/kubectl-ai /usr/local/bin/kubectl-ai \
     && chmod +x /usr/local/bin/kubectl-ai \
     && rm /tmp/kubectl-ai.tar.gz
-WORKDIR /app
-ENV PYTHONPATH=/app 
 
-EXPOSE 8081
+
+CMD ["sh", "-c", "uvicorn guardian.main:app --host 0.0.0.0 --port 8081"]
  
-
-CMD ["uvicorn", "guardian.api:app", "--log-level", "info", "--host", "0.0.0.0" , "--port", "8081"]

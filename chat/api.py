@@ -2,14 +2,12 @@ from const import get_ENV
 AI_AGENT_URL = get_ENV("AI_AGENT_URL")
 
 
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from session.session import create_new_session, get_session, delete_session
 import httpx  
+import uuid
 
 app = FastAPI()
-#Lets use sqlite to test
 
 class SessionRequest(BaseModel):
     user_id: str
@@ -21,36 +19,67 @@ class ChatRequest(BaseModel):
 
 @app.post("/session")
 async def create_session(req: SessionRequest):
-    session_id = await create_new_session( req.user_id)
-    return {"session_id": session_id}
+    async with httpx.AsyncClient() as client:
+        try:
+            session_id = f"session_{uuid.uuid4().hex[:7]}"
+            resp = await client.post(f"{AI_AGENT_URL}/apps/chat/users/{req.user_id}/sessions/{session_id}", timeout=60)
+            resp.raise_for_status()
+            return {"session_id": session_id}
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=500, detail=f"AI agent call failed: {str(e)}")
 
-@app.get("/session/{session_id}")
-async def read_session(session_id: str):
-    session = get_session( session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return {"session_id": session_id, "user_id": session.user_id}
+@app.get("/{user_id}/sessions/{session_id}")
+async def read_session(user_id:str, session_id: str):
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(f"{AI_AGENT_URL}/apps/chat/users/{user_id}/sessions/{session_id}", timeout=60)
+            resp.raise_for_status()
+            data = resp.json()
+            return {"response": data}
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=500, detail=f"AI agent call failed: {str(e)}")
 
-@app.delete("/session/{session_id}")
-async def remove_session(session_id: str):
-    await delete_session( session_id)
-    return {"message": "Session deleted"}
+@app.delete("/{user_id}/sessions/{session_id}")
+async def remove_session(user_id:str,session_id: str):
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.delete(f"{AI_AGENT_URL}/apps/chat/users/{user_id}/sessions/{session_id}", timeout=60)
+            resp.raise_for_status()
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=500, detail=f"AI agent call failed: {str(e)}")
+
  
 @app.post("/chat")
 async def chat(req: ChatRequest):
     # Call agent service
+    
     payload = {
-        "agent_type": "chat",
-        "user_id": req.user_id,
-        "session_id": req.session_id,
-        "message": req.message
+        "appName": "chat",
+        "userId": req.user_id,
+        "sessionId": req.session_id,
+        "newMessage": {
+            "parts": [{
+                "text": req.message
+                }
+                ],
+            "role":"user",
+            },
+        "streaming": False,
+        "stateDelta": {}
     }
+
 
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.post(f"{AI_AGENT_URL}/run-agent", json=payload, timeout=60)
+            resp = await client.post(f"{AI_AGENT_URL}/run", json=payload, timeout=60)
+            # print("AI agent response text:", resp.text) 
+
             resp.raise_for_status()
             data = resp.json()
-            return {"response": data.get("response")}
+            # print(data[0]["content"]["parts"][0]["text"])
+            final_response_text = data[0]["content"]["parts"][0]["text"]
+
+
+            return {"response": final_response_text}
         except httpx.HTTPError as e:
             raise HTTPException(status_code=500, detail=f"AI agent call failed: {str(e)}")

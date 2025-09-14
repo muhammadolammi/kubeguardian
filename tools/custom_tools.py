@@ -108,7 +108,7 @@ async def get_manifest(file_name: str) -> str:
 #         print(f"❌ Failed to send email: {e}")
 
 
-def sendmail(title:str, body:str):
+def send_mail(title:str, body:str):
     """"
     Send an email with the given title and body.
     Args:
