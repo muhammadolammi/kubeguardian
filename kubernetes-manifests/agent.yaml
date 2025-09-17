@@ -33,9 +33,14 @@ spec:
                 name: kubeguardian-secrets
                 key: GEMINI_API_KEY
           - name: AUTHORIZED_DIRECTORY
-            value: "/app/manifests"
+            value: /app/apps/bank-of-anthos/kubernetes-manifests
           - name: AUTHORIZED_NAMESPACE
-            value: bank-of-anthos
+            value: bank-of-anthos 
+          - name: MCP_SERVER
+            valueFrom:
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: MCP_SERVER
 
 
 --- 

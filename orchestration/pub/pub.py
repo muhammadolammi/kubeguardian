@@ -24,8 +24,9 @@ logger = logging.getLogger(__name__)
 #Load configs before defining apis
  # Load kube config
 try:
-    logger.info("Loaded local config")
+    
     config.load_kube_config() 
+    logger.info("Loaded local config")
 except config.ConfigException:
     logger.info("Loaded in-cluster kubeconfig")
     config.load_incluster_config()
@@ -101,14 +102,14 @@ async def main():
         await channel.declare_exchange(exchange_name, aio_pika.ExchangeType.TOPIC, durable=True)
         await asyncio.gather( 
             pub(authorized_namespace, "Deployment", channel),
-            # pub(authorized_namespace, "Pod", channel),
-            # pub(authorized_namespace, "ReplicaSet", channel),
-            # pub(authorized_namespace, "Node", channel),
-            # pub(authorized_namespace, "Service", channel),
-            # pub(authorized_namespace, "Ingress", channel),
-            # pub(authorized_namespace, "ConfigMap", channel),
-            # pub(authorized_namespace, "PersistentVolume", channel),
-            # pub(authorized_namespace, "PersistentVolumeClaim", channel),
+            pub(authorized_namespace, "Pod", channel),
+            pub(authorized_namespace, "ReplicaSet", channel),
+            pub(authorized_namespace, "Node", channel),
+            pub(authorized_namespace, "Service", channel),
+            pub(authorized_namespace, "Ingress", channel),
+            pub(authorized_namespace, "ConfigMap", channel),
+            pub(authorized_namespace, "PersistentVolume", channel),
+            pub(authorized_namespace, "PersistentVolumeClaim", channel),
         )
     finally:
         await channel.close()

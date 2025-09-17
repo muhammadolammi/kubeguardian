@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Kubeguardian - Login</title>
+    <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700;900&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <style type="text/tailwindcss">
+        :root {
+            --primary-color: #1173d4;
+        }
+    </style>
+</head>
+
+<body class="bg-[#111418] font-['Space_Grotesk',_'Noto_Sans',_sans-serif] text-white">
+    <div class="relative flex min-h-screen flex-col overflow-x-hidden dark group/design-root">
+        <div class="layout-container flex h-full grow flex-col">
+            <header
+                class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#283039] px-10 py-3">
+                <div class="flex items-center gap-4">
+                    <div class="size-6 text-[var(--primary-color)]">
+                        <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M44 4H30.6666V17.3334H17.3334V30.6666H4V44H44V4Z" fill="currentColor"></path>
+                        </svg>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tight">Kubeguardian</h1>
+                </div>
+            </header>
+            <main class="flex flex-1 flex-col items-center justify-center py-10 px-4 sm:px-6 lg:px-8">
+                <div class="w-full max-w-md space-y-8 rounded-2xl bg-[#1c2127] p-8 shadow-2xl">
+                    <div class="text-center">
+                        <h2 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                            Welcome Back
+                        </h2>
+                        <p class="mt-2 text-sm text-gray-400">
+                            Sign in to continue to Kubeguardian
+                        </p>
+                    </div>
+                    <form id="loginForm" class="space-y-6" method="POST">
+                        <div>
+                            <label class="sr-only" for="email">Email address</label>
+                            <input autocomplete="email"
+                                class="form-input block w-full resize-none rounded-md border-0 bg-[#283039] p-4 text-white placeholder-gray-500 ring-1 ring-inset ring-[#3b4754] transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--primary-color)] sm:text-sm sm:leading-6"
+                                id="email" name="email" placeholder="Enter your email" required type="email" />
+                        </div>
+                        <div>
+                            <label class="sr-only" for="password">Password</label>
+                            <div class="relative">
+                                <input autocomplete="current-password"
+                                    class="form-input block w-full resize-none rounded-md border-0 bg-[#283039] p-4 text-white placeholder-gray-500 ring-1 ring-inset ring-[#3b4754] transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--primary-color)] sm:text-sm sm:leading-6"
+                                    id="password" name="password" placeholder="Enter your password" required
+                                    type="password" />
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-end">
+                            <div class="text-sm">
+                                <a class="font-medium text-gray-400 hover:text-[var(--primary-color)]" href="#">Forgot
+                                    your password?</a>
+                            </div>
+                        </div>
+                        <div>
+                            <button
+                                class="flex w-full justify-center rounded-md border border-transparent bg-[var(--primary-color)] py-3 px-4 text-base font-bold text-white shadow-sm transition duration-150 ease-in-out hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 focus:ring-offset-[#1c2127]"
+                                type="submit">
+                                Log in
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/static/js/login.js"></script>
+</body>
+
+</html>

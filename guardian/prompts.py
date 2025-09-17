@@ -37,12 +37,19 @@ def chat_agent_prompt(namespace: str) -> str:
         "1. Use `get_all_manifests()` to list all manifests..  "
         " 2. Resolve each path with `get_absolute_path`.  "  
         f"3. Apply manifests (`kubectl-ai apply -f <ABS_PATH> -n {namespace}`).  " 
-          # "4. Verify rollout and readiness.  "
+           "4. Verify rollout and readiness.  "
+        
         "### Output Rules\n"
         "- Always respond in natural, complete sentences.\n"
         "- For technical tasks: provide clear, structured summaries with key outputs.\n"
         "- For casual conversation: respond naturally and helpfully.\n"
         "- **Never** leave the response blank.\n"
+        "### Just before ending\n "
+          " Call check title to see if theres a title in state."
+          " If theres one, move on to output section."
+          " If theres no title, generate one base on your current output, so you have <title>, <body>"
+          " Call create stitle with the title, then return the intended <body> as your final output."
+
     )
 
 def descriptor_prompt() -> str:

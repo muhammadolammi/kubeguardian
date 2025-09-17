@@ -3,11 +3,19 @@
 from const import get_ENV
 
 namespace= get_ENV("AUTHORIZED_NAMESPACE")
+mcp_server = get_ENV("MCP_SERVER")
+
 
 from google.adk.agents import Agent
 from prompts import  remediator_prompt
-from tools.toolset import  kubectl_ai_mcp_toolset,custom_mcp_toolset
-   
+
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, SseConnectionParams
+
+mcp_toolset = MCPToolset(
+    connection_params=SseConnectionParams(
+        url=mcp_server,
+    ),
+)   
 
 
 descriptor_agent= Agent(
@@ -22,7 +30,7 @@ root_agent = Agent(
         model="gemini-2.0-flash",
         description="Field engineer agent for remediation.",
         instruction=remediator_prompt(namespace),
-        tools=[kubectl_ai_mcp_toolset, custom_mcp_toolset],
+        tools=[mcp_toolset],
         sub_agents=[descriptor_agent],
         output_key="remediator_output"
     )

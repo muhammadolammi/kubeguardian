@@ -3,6 +3,8 @@ from const import get_ENV
 
 AI_AGENT_URL = get_ENV("AI_AGENT_URL")
 authorized_namespace = get_ENV("AUTHORIZED_NAMESPACE")
+DB_URL = get_ENV("DB_URL")
+CRYPT_KEY = get_ENV("CRYPT_KEY")
 
 import httpx
 import uuid
@@ -17,6 +19,8 @@ import aio_pika
 from google.adk.sessions import DatabaseSessionService
 from ..helpers import connect_rabbitmq
 from ..types import Payload
+from helpers import AlertDB
+alertdb = AlertDB(db_url=DB_URL,crypt_key=CRYPT_KEY)
 
 # ------------------ Logging ------------------
 logging.basicConfig(
@@ -76,8 +80,11 @@ async def send_events_to_agent(
                 resp.raise_for_status()
                 data = resp.json()
                 #  print(data[0]["content"]["parts"][0]["text"])
-                final_response_text = data[0]["content"]["parts"][0]["text"]
-                logger.info(f"Remediation Successful. [AI Response] {final_response_text}")
+                final_response_text :str= data[0]["content"]["parts"][0]["text"]
+                logss = f"✅ Remediation Successful. [AI Response] {final_response_text}"
+                logger.info(f"✅ Remediation Successful. [AI Response] {final_response_text}")
+                alertdb.update_alert(logss, session_id=session.id)
+
                 return 
             except Exception as e :
                 logger.warning(
@@ -88,6 +95,9 @@ async def send_events_to_agent(
                 if retries > max_retries:
                     logger.error("Max retries reached. Dropping message or saving to DB.")
                     # TODO: Replace with actual DB persistence
+                    logss = f"❌ ERROR Max retries reached. Last response: {final_response_text}. message: {message_text}, Last error: {e}"
+                    alertdb.update_alert(logss, session_id=session.id)
+
                     #save_failed_request_to_db(payload)
                     return None 
                 await asyncio.sleep(30)

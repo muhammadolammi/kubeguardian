@@ -1,7 +1,8 @@
-from const import get_ENV
+from const import get_ENV, logger
 AI_AGENT_URL = get_ENV("AI_AGENT_URL")
-
-
+DB_URL = get_ENV("DB_URL")
+CRYPT_KEY = get_ENV("CRYPT_KEY")
+ 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import httpx  
@@ -9,13 +10,22 @@ import uuid
 
 app = FastAPI()
 
-class SessionRequest(BaseModel):
-    user_id: str
 
-class ChatRequest(BaseModel):
-    session_id: str
-    user_id: str
-    message: str
+
+
+
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or ["http://localhost:8000"] for your frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 
 @app.post("/session")
 async def create_session(req: SessionRequest):
