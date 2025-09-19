@@ -1,14 +1,15 @@
 from const import get_ENV
-rabbitmq_url = get_ENV("RABBITMQ_URL")
-from typing import Any
-
-from .types import Payload
+from type import Payload
 import aio_pika 
 import logging
 from datetime import datetime
 import sys 
 import asyncio
 from kubernetes import watch
+from typing import Any
+
+rabbitmq_url = get_ENV("RABBITMQ_URL")
+
 
 
 
@@ -194,6 +195,7 @@ def serialize_event_obj(event: dict[str, Any], resource: str) -> Payload | None:
         annotations=payload_dict.get("annotations", {}),
         extra=payload_dict.get("extra", {}),
     )
+
 async def connect_rabbitmq():
     """Keep trying to connect to RabbitMQ until success."""
     while True:

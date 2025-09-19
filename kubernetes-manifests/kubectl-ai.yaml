@@ -1,0 +1,94 @@
+# permissions 
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubectl-ai-sa
+  namespace: bank-of-anthos
+
+--- 
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubectl-ai-role
+  namespace: bank-of-anthos
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "secrets", "events"]
+    verbs: ["get", "list", "watch", "describe", "logs"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubectl-ai-rolebinding
+  namespace: bank-of-anthos
+subjects:
+  - kind: ServiceAccount
+    name: kubectl-ai-sa
+    namespace: bank-of-anthos
+roleRef:
+  kind: Role
+  name: kubectl-ai-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: kubectl-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubectl-ai
+  template:
+    metadata:
+      labels:
+        app: kubectl-ai
+    spec:
+      serviceAccountName: kubectl-ai-sa
+      containers:
+      - name: kubectl-ai
+        image: muhammadolammi/kubeguardian:kubectl-ai:latest   
+        imagePullPolicy: IfNotPresent
+        args:
+          - "--mcp-server"
+          - "--mcp-server-mode=sse"
+          - "--sse-endpoint-port=8085"
+          - "-v=2"
+        
+
+        ports: 
+          - containerPort: 8085
+        env:
+          - name: GEMINI_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: GEMINI_API_KEY
+
+
+--- 
+
+# ai-agent-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubectl-ai
+spec:
+  selector:
+    app: kubectl-ai
+  ports:
+    - protocol: TCP
+      port: 8085
+      targetPort: 8085
+  type: ClusterIP

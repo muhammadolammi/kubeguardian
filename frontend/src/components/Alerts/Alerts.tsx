@@ -1,26 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { Alert, User } from '../../types';
+import { BACKEND_URL } from "../../const"
 
-const BACKEND_URL = "http://localhost:8081";
 
-interface Alert {
-    id: string;
-    resource: string;
-    type: string;
-    reason: string;
-    message: string;
-    namespace: string;
-    condition: string;
-    timestamp: string;
-    tier?: string;
-    labels?: Record<string, string>;
-    extra?: string;
-}
 
-interface User {
-    id: string;
-    user_name: string;
-    email: string;
-}
 
 interface AlertsProps {
     onLogout: () => void;
@@ -54,7 +37,13 @@ const Alerts: React.FC<AlertsProps> = ({ onLogout }) => {
                 });
                 if (!res.ok) throw new Error("Failed to fetch alerts");
 
-                const data: Alert[] = await res.json();
+                const data = await res.json();
+                if (data["error encountered "]) {
+                    console.log("error encountered")
+                    return []
+                }
+
+                console.log(data)
                 setAlerts(data);
             } catch (err: any) {
                 setError(err.message || "Something went wrong");
@@ -143,23 +132,18 @@ const Alerts: React.FC<AlertsProps> = ({ onLogout }) => {
                             >
                                 <div className="flex justify-between items-center mb-2">
                                     <h2 className="text-lg font-semibold text-white">
-                                        {alert.resource} ({alert.type})
+                                        ({alert.severity})
                                     </h2>
                                     <span className="text-sm text-gray-400">
-                                        {new Date(alert.timestamp).toLocaleString()}
+                                        {new Date(alert.created_at).toLocaleString()}
                                     </span>
                                 </div>
                                 <p className="text-sm text-red-400 font-medium mb-1">
-                                    Reason: {alert.reason}
+                                    Reason: {alert.description}
                                 </p>
-                                <p className="text-sm text-gray-300 mb-2">{alert.message}</p>
-                                <div className="text-xs text-gray-400">
-                                    <p>
-                                        Namespace: <span className="text-white">{alert.namespace}</span>
-                                    </p>
-                                    <p>
-                                        Condition: <span className="text-white">{alert.condition}</span>
-                                    </p>
+                                {/* <p className="text-sm text-gray-300 mb-2">{alert.body}</p> */}
+                                {/* <div className="text-xs text-gray-400">
+                        
                                     {alert.tier && <p>Tier: {alert.tier}</p>}
                                     {alert.labels && (
                                         <p>
@@ -170,7 +154,7 @@ const Alerts: React.FC<AlertsProps> = ({ onLogout }) => {
                                         </p>
                                     )}
                                     {alert.extra && <p>Extra: {alert.extra}</p>}
-                                </div>
+                                </div> */}
                             </div>
                         ))}
                     </div>

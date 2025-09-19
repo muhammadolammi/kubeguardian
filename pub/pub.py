@@ -1,26 +1,19 @@
-from const import get_ENV
+from const import get_ENV, exchange_name, logger
 authorized_namespace = get_ENV("AUTHORIZED_NAMESPACE")
 
 import asyncio
-import logging
-import sys
+
 from kubernetes import client, config
 from kubernetes.client import ApiClient
 import aio_pika
-from ..helpers import process_event, connect_rabbitmq,stream_k8s_events, serialize_event_obj
+from helpers import process_event, connect_rabbitmq,stream_k8s_events, serialize_event_obj
 shutdown_event = asyncio.Event() 
 serializer = ApiClient()
 
 # shutdown_event = asyncio.Event()
 
-from ..const import exchange_name
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    stream=sys.stderr,
-)
-logger = logging.getLogger(__name__)
+
 #Load configs before defining apis
  # Load kube config
 try:

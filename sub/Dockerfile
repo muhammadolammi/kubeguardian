@@ -32,9 +32,7 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv .venv 
 COPY . .
-
-
-
-
-CMD [ "python" ,"-m" ,  "main"]
  
+
+
+CMD ["python", "-m", "sub"]

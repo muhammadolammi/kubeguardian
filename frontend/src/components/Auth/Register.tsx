@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const BACKEND_URL = "http://localhost:8081";
+import { BACKEND_URL } from "../../const"
 
 interface RegisterProps {
     onSwitchToLogin: () => void;

@@ -1,10 +1,5 @@
-from ..const import exchange_name
-from const import get_ENV
-
-AI_AGENT_URL = get_ENV("AI_AGENT_URL")
-authorized_namespace = get_ENV("AUTHORIZED_NAMESPACE")
-DB_URL = get_ENV("DB_URL")
-CRYPT_KEY = get_ENV("CRYPT_KEY")
+from const import exchange_name, get_ENV
+from type import Payload
 
 import httpx
 import uuid
@@ -16,11 +11,16 @@ import asyncio
 import json
 from typing import List
 import aio_pika
-from google.adk.sessions import DatabaseSessionService
-from ..helpers import connect_rabbitmq
-from ..types import Payload
-from helpers import AlertDB
-alertdb = AlertDB(db_url=DB_URL,crypt_key=CRYPT_KEY)
+from helpers import connect_rabbitmq, AlertDB
+
+AI_AGENT_URL = get_ENV("AI_AGENT_URL")
+authorized_namespace = get_ENV("AUTHORIZED_NAMESPACE")
+CRYPT_KEY = get_ENV("CRYPT_KEY")
+DB_URL = get_ENV("DB_URL")
+
+alertdb = AlertDB(db_url=DB_URL, crypt_key=CRYPT_KEY)
+
+
 
 # ------------------ Logging ------------------
 logging.basicConfig(
@@ -57,7 +57,7 @@ def format_payloads_for_ai(payloads: List[Payload]) -> str:
 
 async def send_events_to_agent(
     data: List[Payload],
-    session: DatabaseSessionService,
+    session: dict,
 ):
     """Send batch to AI agent (no retries)."""
     message_text = format_payloads_for_ai(data)
@@ -80,11 +80,8 @@ async def send_events_to_agent(
                 resp.raise_for_status()
                 data = resp.json()
                 #  print(data[0]["content"]["parts"][0]["text"])
-                final_response_text :str= data[0]["content"]["parts"][0]["text"]
-                logss = f"✅ Remediation Successful. [AI Response] {final_response_text}"
-                logger.info(f"✅ Remediation Successful. [AI Response] {final_response_text}")
-                alertdb.update_alert(logss, session_id=session.id)
-
+                final_response_text = data[0]["content"]["parts"][0]["text"]
+                logger.info(f"Remediation Successful. [AI Response] {final_response_text}")
                 return 
             except Exception as e :
                 logger.warning(
@@ -92,19 +89,16 @@ async def send_events_to_agent(
                     f"Sleeping for 30s before retry..."
                 )
                 retries += 1
-                if retries > max_retries:
-                    logger.error("Max retries reached. Dropping message or saving to DB.")
-                    # TODO: Replace with actual DB persistence
-                    logss = f"❌ ERROR Max retries reached. Last response: {final_response_text}. message: {message_text}, Last error: {e}"
-                    alertdb.update_alert(logss, session_id=session.id)
-
-                    #save_failed_request_to_db(payload)
+                if retries >= max_retries:
+                    logger.error("Max retries reached. saving to DB.")
+                    db_string = f"Max retries reached. DB_payload: {message_text}"
+                    alertdb.update_alert(body=db_string,session_id=session["id"],severity="SYSTEM ERROR")
                     return None 
                 await asyncio.sleep(30)
 
 
 
-async def flush_buffer(namespace: str, session: DatabaseSessionService, channel):
+async def flush_buffer(  session: dict, ):
     """Flush buffered events to AI agent."""
     global buffer
     if not buffer:
@@ -119,7 +113,7 @@ async def flush_buffer(namespace: str, session: DatabaseSessionService, channel)
 
 
 # ------------------ Subscriber ------------------
-async def sub(namespace: str, queue, session: DatabaseSessionService, channel):
+async def sub(namespace: str, queue, session: dict, channel):
     """Async subscriber for deployment events."""
     async with queue.iterator() as queue_iter:
         async for message in queue_iter:
@@ -149,11 +143,11 @@ async def sub(namespace: str, queue, session: DatabaseSessionService, channel):
                             payload_obj.type == "DELETED"
                             and payload_obj.resource == "Deployment"
                         ):
-                            await flush_buffer(namespace, session, channel)
+                            await flush_buffer( session, )
 
                     # Flush if buffer too big
                     if len(buffer) >= BATCH_SIZE:
-                        await flush_buffer(namespace, session, channel)
+                        await flush_buffer( session)
 
                 except Exception as e:
                     logger.error(f"Failed to process message: {e}")

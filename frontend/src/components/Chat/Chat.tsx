@@ -3,8 +3,8 @@ import { Session, User, ApiSession } from '../../types';
 import { convertApiSessionToSession } from '../../utils/sessionUtils';
 import { getSessionTitle } from '../../utils/sessionUtils';
 
+import { BACKEND_URL } from "../../const"
 
-const BACKEND_URL = "http://localhost:8081";
 const APP_NAME = "chat";
 
 interface ChatProps {
@@ -22,6 +22,7 @@ const Chat: React.FC<ChatProps> = ({ onLogout }) => {
 
 
     useEffect(() => {
+        console.log(BACKEND_URL)
         initializeChat();
     }, []);
 
@@ -45,7 +46,7 @@ const Chat: React.FC<ChatProps> = ({ onLogout }) => {
             setSessions(sessionData);
 
             const sessionId = getCurrentSessionId();
-            if (sessionId == "") {
+            if (sessionId === "") {
                 return
             }
             if (sessionId) {

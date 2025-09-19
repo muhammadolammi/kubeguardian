@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AuthContainer from './components/Auth/AuthContainer';
 import Chat from './components/Chat/Chat';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/Auth/ProtectedRoute';
 import AlertsPage from "./components/Alerts/Alerts";
 
 const App: React.FC = () => {

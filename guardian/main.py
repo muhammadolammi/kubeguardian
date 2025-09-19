@@ -1,22 +1,21 @@
 from const import get_ENV, logger
-from orchestration.sub.helpers import AlertDB
+from pydantic import BaseModel
+import os
+import uvicorn
+from google.adk.cli.fast_api import get_fast_api_app
+import jwt
+from fastapi.responses import JSONResponse
+from datetime import datetime, timedelta, timezone
+from fastapi import Response, Request, FastAPI
+
+from helpers import AlertDB,AuthDBHelper
 
 session_DB_URL = get_ENV("SESSION_DB_URL")
 AI_AGENT_URL = get_ENV("AI_AGENT_URL")
 DB_URL = get_ENV("DB_URL")
 CRYPT_KEY = get_ENV("CRYPT_KEY")
-from .helpers import AuthDBHelper
 authdb_helper = AuthDBHelper(db_url=DB_URL, crypt_key=CRYPT_KEY)
 alertdb = AlertDB(db_url=DB_URL, crypt_key=CRYPT_KEY)
-from pydantic import BaseModel
-import os
-import uvicorn
-from fastapi import FastAPI
-from google.adk.cli.fast_api import get_fast_api_app
-import jwt
-from fastapi.responses import JSONResponse
-from datetime import datetime, timedelta, timezone
-from fastapi import Response, Request
 
 JWT_SECRET = CRYPT_KEY
 JWT_ALGORITHM = "HS256"
@@ -100,7 +99,12 @@ async def login(req: LoginRequest, response: Response):
     }
 @app.get("/custom-alerts")
 async def custom_alerts():
-    return alertdb.get_all_alerts()
+    try:
+        dbs = alertdb.get_all_alerts()
+        return dbs
+    except Exception as e:
+        logger.info(f"error encountered: {e}")
+        return {f"error encountered: {e} "}
 
 
 @app.post("/logout")

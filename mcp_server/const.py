@@ -1,5 +1,9 @@
+
 import os
 from dotenv import load_dotenv
+
+import logging
+import sys
 
 
 def get_ENV(name :str) -> str:
@@ -11,12 +15,6 @@ def get_ENV(name :str) -> str:
         print(f"{name} not in environment")
         os._exit(1)
     return env
-APP_NAME = "kubeguardian"
-
-
-
-import logging
-import sys
 
 
 
@@ -27,8 +25,5 @@ logging.basicConfig(
     stream=sys.stderr,  # ✅ Logs to stderr
 )
 logger = logging.getLogger(__name__)
-
-
-
 
 

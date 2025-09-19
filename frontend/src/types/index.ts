@@ -1,4 +1,15 @@
 // src/types/index.ts
+
+export interface Alert {
+    id: string;
+    description: string;
+    body: string;
+    severity: string;
+    created_at: string;
+    session_id: string
+}
+
+
 export interface User {
     id: string;
     user_name: string;

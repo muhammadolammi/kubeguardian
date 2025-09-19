@@ -1,3 +1,8 @@
+
+
+
+exchange_name = "k8s_events"
+
 import os
 from dotenv import load_dotenv
 
@@ -17,10 +22,6 @@ def get_ENV(name :str) -> str:
 
 
 
-
-
-
-
 # --- Logging Setup ---
 logging.basicConfig(
     level=logging.INFO,
@@ -28,4 +29,5 @@ logging.basicConfig(
     stream=sys.stderr,  # ✅ Logs to stderr
 )
 logger = logging.getLogger(__name__)
+
 

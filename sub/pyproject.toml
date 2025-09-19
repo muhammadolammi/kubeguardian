@@ -1,0 +1,18 @@
+[project]
+name = "agent"
+version = "0.1.0"
+description = "Base image for kubeguardian:agent"
+requires-python = ">=3.12.4"
+dependencies = [
+    "pydantic",
+    "fastapi",
+    "Flask",
+    "bcrypt",            
+    "psycopg2-binary",
+    "httpx",
+    "uuid",
+    "asyncio",
+    "typing",
+    "aio_pika",
+    "python-dotenv",
+]

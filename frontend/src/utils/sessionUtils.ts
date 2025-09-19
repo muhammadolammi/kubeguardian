@@ -75,6 +75,6 @@ export const getSessionTitle = (session: Session): string => {
             return words.slice(0, 5).join(' ') + '...';
         }
     }
-    return ""
+    return "New Chat"
 
 };

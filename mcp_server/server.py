@@ -1,22 +1,19 @@
+from const import logger 
+
 import contextlib
 import logging
-import asyncio
 from collections.abc import AsyncIterator
 from typing import Any
 import json
-
 import mcp.types as types
 from mcp.server.lowlevel import Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.types import Receive, Scope, Send
-
 from google.adk.tools.function_tool import FunctionTool
 from google.adk.tools.mcp_tool.conversion_utils import adk_to_mcp_tool_type
-from .custom_tools import get_devs_name, get_all_manifests, get_absolute_path, get_manifest, send_mail
-
-logger = logging.getLogger(__name__)
+from custom_tools import get_devs_name, get_all_manifests, get_absolute_path, get_manifest, create_alert
 
 # -----------------------[ADK Tools Setup]-----------------------
 tools = {
@@ -24,7 +21,7 @@ tools = {
     "get_manifest": FunctionTool(get_manifest),
     "get_all_manifests": FunctionTool(get_all_manifests),
     "get_absolute_path": FunctionTool(get_absolute_path),
-    "send_mail": FunctionTool(send_mail),
+    "create_alert": FunctionTool(create_alert),
 }
 
 logger.info(f"ADK tools {list(tools.keys())} initialized.")

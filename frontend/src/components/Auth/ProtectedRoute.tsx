@@ -1,8 +1,8 @@
 // src/components/ProtectedRoute.tsx
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { User } from "../types";
-const BACKEND_URL = "http://localhost:8081";
+import { User } from "../../types";
+import { BACKEND_URL } from "../../const"
 
 
 const getCurrentUser = async (): Promise<User | null> => {
@@ -33,7 +33,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }, []);
 
     if (loading) return <div>Loading...</div>;
-    if (!user) return <Navigate to="/auth" />;
+    if (!user) return <Navigate to="/login" />;
 
     return <>{children}</>;
 };
