@@ -14,7 +14,14 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: muhammadolammi/kubeguardian:frontend
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi" 
+          image: muhammadolammi/kubeguardian-frontend
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
@@ -30,32 +37,3 @@ spec:
   ports:
     - port: 80
       targetPort: 80
----
-apiVersion: networking.gke.io/v1
-kind: ManagedCertificate
-metadata:
-  name: frontend-cert
-spec:
-  domains:
-    - kubeguardian.qtechconsults.com
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: frontend-ingress
-  annotations:
-    kubernetes.io/ingress.class: "gce"
-    networking.gke.io/managed-certificates: "frontend-cert"
-spec:
-  ingressClassName: gce
-  rules:
-    - host: kubeguardian.qtechconsults.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend
-                port:
-                  number: 80

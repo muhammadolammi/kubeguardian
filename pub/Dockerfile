@@ -1,7 +1,23 @@
-FROM kubeguardian/base:latest
+## ------------------------------- Builder Stage ------------------------------ ## 
+FROM python:3.13-bookworm AS builder
 
 WORKDIR /app
-ENV PYTHONPATH=/app 
+
+# Install deps first (cached if unchanged)
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+## ------------------------------- Production Stage ------------------------------ ##
+FROM python:3.13-slim-bookworm AS production
+
+WORKDIR /app
+
+# Copy installed deps
+COPY --from=builder /install /usr/local
+
+# Copy app source
+COPY . .
+ENV PYTHONPATH=/APP
 EXPOSE 8082
 
-CMD ["python", "-m", "orchestration.pub.pub"]
+CMD ["python", "-m", "pub"]

@@ -50,8 +50,15 @@ spec:
       serviceAccountName: publisher-sa
       containers:
       - name: publisher
-        image: kubeguardian/publisher:latest
+        image: muhammadolammi/kubeguardian-pub
         imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
         ports:
         - containerPort: 8082
         env:

@@ -9,5 +9,6 @@ dependencies = [
     "uvicorn",
     "mcp",
     "starlette",
-    "python-dotenv"
+    "python-dotenv",
+    "psycopg2-binary"
 ]

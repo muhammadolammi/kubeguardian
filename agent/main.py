@@ -10,8 +10,6 @@ from fastapi import Response, Request, FastAPI
 
 from helpers import AlertDB,AuthDBHelper
 
-session_DB_URL = get_ENV("SESSION_DB_URL")
-AI_AGENT_URL = get_ENV("AI_AGENT_URL")
 DB_URL = get_ENV("DB_URL")
 CRYPT_KEY = get_ENV("CRYPT_KEY")
 authdb_helper = AuthDBHelper(db_url=DB_URL, crypt_key=CRYPT_KEY)
@@ -41,7 +39,6 @@ class LoginRequest(BaseModel):
 # Get the directory where main.py is located
 AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Example session service URI (e.g., SQLite)
-SESSION_SERVICE_URI = session_DB_URL
 # Example allowed origins for CORS
 ALLOWED_ORIGINS = ["http://localhost", "http://localhost:8080", "*"]
 # Set web=True if you intend to serve a web interface, False otherwise
@@ -51,7 +48,7 @@ SERVE_WEB_INTERFACE = False
 # Ensure the agent directory name ('capital_agent') matches your agent folder
 app: FastAPI = get_fast_api_app(
     agents_dir=AGENT_DIR,
-    session_service_uri=SESSION_SERVICE_URI,
+    session_service_uri=DB_URL,
     allow_origins=ALLOWED_ORIGINS,
     web=SERVE_WEB_INTERFACE,
 )
@@ -134,4 +131,4 @@ async def me(req: Request):
 
 if __name__ == "__main__":
     # Use the PORT environment variable provided by Cloud Run, defaulting to 8081
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8081)))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8081))) 

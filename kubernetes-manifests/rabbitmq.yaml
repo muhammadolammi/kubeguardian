@@ -34,11 +34,11 @@ spec:
                   key: POSTGRES_PASSWORD
           resources:
             requests:
-              memory: "256Mi"
+              memory: "200Mi"
               cpu: "250m"
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: "500Mi"
+              cpu: "512m"
 
 ---
 apiVersion: v1

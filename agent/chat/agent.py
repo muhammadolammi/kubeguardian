@@ -4,8 +4,6 @@ from prompts import  chat_agent_prompt
 from google.adk.agents import Agent
 
 
-
-
 namespace= get_ENV("AUTHORIZED_NAMESPACE")
 
 

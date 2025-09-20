@@ -16,17 +16,29 @@ spec:
     spec:
       containers:
       - name: agent
-        image: kubeguardian/agent:latest   # Your AI agent Docker image
-        imagePullPolicy: IfNotPresent
+        image:  muhammadolammi/kubeguardian-agent
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "256Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi" 
 
         ports: 
           - containerPort: 8081 
         env:
-          - name: SESSION_DB_URL
+          - name: KUBECTL_AI_MCP_SERVER
             valueFrom:
               secretKeyRef:
                 name: kubeguardian-secrets
-                key: SESSION_DB_URL
+                key: KUBECTL_AI_MCP_SERVER
+          - name: CRYPT_KEY
+            valueFrom:
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: CRYPT_KEY
+         
           - name: GEMINI_API_KEY
             valueFrom:
               secretKeyRef:
@@ -41,6 +53,11 @@ spec:
               secretKeyRef:
                 name: kubeguardian-secrets
                 key: MCP_SERVER
+          - name: DB_URL
+            valueFrom:
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: DB_URL
 
 
 --- 
@@ -58,3 +75,26 @@ spec:
       port: 8081
       targetPort: 8081
   type: ClusterIP
+
+
+
+import httpx
+import asyncio
+
+async def test_sse():
+    url = "http://mcp-server:8086/mcp"
+    try:
+        async with httpx.AsyncClient(timeout=None) as client:
+            async with client.stream("GET", url) as response:
+                print("Status:", response.status_code)
+                # Read first few lines from the stream
+                async for line in response.aiter_lines():
+                    if line.strip() == "":
+                        continue
+                    print("Received:", line)
+                    # Stop after first few events for testing
+                    break
+    except Exception as e:
+        print("Error:", e)
+
+asyncio.run(test_sse())

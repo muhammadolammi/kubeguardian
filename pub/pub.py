@@ -10,12 +10,6 @@ from helpers import process_event, connect_rabbitmq,stream_k8s_events, serialize
 shutdown_event = asyncio.Event() 
 serializer = ApiClient()
 
-# shutdown_event = asyncio.Event()
-
-
-
-#Load configs before defining apis
- # Load kube config
 try:
     
     config.load_kube_config() 

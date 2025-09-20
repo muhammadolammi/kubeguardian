@@ -1,4 +1,5 @@
 ## ------------------------------- Builder Stage ------------------------------ ## 
+## ------------------------------- Builder Stage ------------------------------ ## 
 FROM python:3.13-bookworm AS builder
 
 WORKDIR /app
@@ -19,5 +20,5 @@ COPY --from=builder /install /usr/local
 COPY . .
 ENV PYTHONPATH=/APP
 
-
-CMD ["python", "-m", "sub"]
+CMD [ "python" ,"-m" ,  "main"]
+ 
