@@ -20,7 +20,8 @@ This project was built for the GKE Hackathon.
 | Frontend         | Static HTML    | Web UI for users to chat with the Chat Agent and view alerts.                |
 | Agent       | Python   | Exposes HTTP API for handling user requests(custom endpoints) and agent calls(adk default endpoints).                                 |
                 
-| Publisher        | Python   | Watches Kubernetes events and publishes them into RabbitMQ.                  |
+| Publisher        | Python   | Watches Kubernetes events and publishes them into RabbitMQ.
+        |
 | Subscriber       | Python   | Consumes events from RabbitMQ and forwards to the Remediator Agent.          |
 | MCP Server       | Python   | Exposes custom tools via the Model Context Protocol (MCP).                   |
 | kubectl-ai       | kubectl-ai   | MCP server exposing kubectl functions for cluster operations.                |
