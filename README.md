@@ -18,7 +18,8 @@ This project was built for the GKE Hackathon.
 | Service          | Language | Description                                                                  |
 | ---------------- | -------- | ---------------------------------------------------------------------------- |
 | Frontend         | Static HTML    | Web UI for users to chat with the Chat Agent and view alerts.                |
-| Agent       | Python   | Exposes HTTP API for handling user requests(custom endpoints) and agent calls(adk default endpoints).                                 |
+| Agent       | Python   | Exposes HTTP API for handling user requests(custom endpoints) and agent calls(adk default endpoints).
+            |
                 
 | Publisher        | Python   | Watches Kubernetes events and publishes them into RabbitMQ.
         |
