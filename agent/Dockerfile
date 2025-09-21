@@ -18,7 +18,7 @@ COPY --from=builder /install /usr/local
 
 # Copy app source
 COPY . .
-ENV PYTHONPATH=/APP
+ENV PYTHONPATH=/APP 
 
 CMD [ "python" ,"-m" ,  "main"]
  

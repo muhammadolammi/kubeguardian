@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: agent
-        image:  muhammadolammi/kubeguardian-agent:v2
+        image:  muhammadolammi/kubeguardian-agent:v3
         imagePullPolicy: Always
         resources:
           requests:
