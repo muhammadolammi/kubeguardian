@@ -1,0 +1,30 @@
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Env & venv
+.venv/
+.env
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+
+# Shell scripts if you don’t want them
+*.sh
+
+apps

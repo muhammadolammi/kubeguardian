@@ -1,0 +1,12 @@
+[project]
+name = "agent"
+version = "0.1.0"
+description = "Base image for kubeguardian:agent"
+requires-python = ">=3.12.4"
+dependencies = [
+    "kubernetes",
+    "asyncio",
+    "aio_pika",
+    "pydantic",
+    
+]

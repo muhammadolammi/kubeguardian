@@ -1,0 +1,81 @@
+# ai-agent-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent
+  template:
+    metadata:
+      labels:
+        app: agent
+    spec:
+      containers:
+      - name: agent
+        image:  muhammadolammi/kubeguardian-agent:v3
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "256Mi"
+          limits:
+            cpu: "1"
+            memory: "1Gi" 
+
+        ports: 
+          - containerPort: 80
+        env:
+
+          - name: KUBECTL_AI_MCP_SERVER
+            valueFrom:
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: KUBECTL_AI_MCP_SERVER
+          - name: CRYPT_KEY
+            valueFrom:
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: CRYPT_KEY
+         
+          - name: GEMINI_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: GEMINI_API_KEY
+          - name: AUTHORIZED_DIRECTORY
+            value: /app/kubernetes-manifests
+          - name: AUTHORIZED_NAMESPACE
+            value: bank-of-anthos 
+          - name: MCP_SERVER
+            valueFrom:
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: MCP_SERVER
+          - name: DB_URL
+            valueFrom:
+              secretKeyRef:
+                name: kubeguardian-secrets
+                key: DB_URL
+
+
+--- 
+
+# ai-agent-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent
+spec:
+  selector:
+    app: agent
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+
+

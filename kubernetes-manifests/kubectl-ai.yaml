@@ -1,0 +1,103 @@
+# ServiceAccount for kubectl-ai
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubectl-ai-sa
+  namespace: bank-of-anthos
+
+---
+
+# Role giving permissions within bank-of-anthos
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubectl-ai-role
+  namespace: bank-of-anthos
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "secrets", "events", "pods/log"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch", "update", "patch", "create"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+
+---
+
+# Bind the SA to the Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubectl-ai-rolebinding
+  namespace: bank-of-anthos
+subjects:
+  - kind: ServiceAccount
+    name: kubectl-ai-sa
+    namespace: bank-of-anthos
+roleRef:
+  kind: Role
+  name: kubectl-ai-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+# Deployment for kubectl-ai
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubectl-ai
+  namespace: bank-of-anthos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubectl-ai
+  template:
+    metadata:
+      labels:
+        app: kubectl-ai
+    spec:
+      serviceAccountName: kubectl-ai-sa
+      containers:
+        - name: kubectl-ai
+          image: muhammadolammi/kubeguardian-kubectl-ai
+          args:
+            - "--mcp-server"
+            - "--mcp-server-mode=sse"
+            - "--sse-endpoint-port=8085"
+            - "-v=2"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "512Mi"
+            limits:
+              cpu: "200m"
+              memory: "1Gi"
+          ports:
+            - containerPort: 8085
+          env:
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kubeguardian-secrets
+                  key: GEMINI_API_KEY
+            
+
+---
+
+# Service for kubectl-ai
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubectl-ai
+  namespace: bank-of-anthos
+spec:
+  selector:
+    app: kubectl-ai
+  ports:
+    - protocol: TCP
+      port: 8085
+      targetPort: 8085
+  type: ClusterIP

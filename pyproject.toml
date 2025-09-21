@@ -1,0 +1,31 @@
+[project]
+name = "kubeguardian"
+version = "0.1.0"
+description = "Base image for kubeguardian"
+readme = "README.md"
+requires-python = ">=3.12.4"
+dependencies = [
+"google-generativeai",
+"google-adk",
+"aio_pika",
+"bleach",
+"fastapi",
+"Flask",
+"httpx",
+"kopf",
+"kubernetes",
+"locust",
+"mcp",
+"opentelemetry_exporter_gcp_trace",
+"opentelemetry_resourcedetector_gcp",
+"protobuf",
+"pycryptodome",
+"pydantic",
+
+"python-dotenv",
+"python_bcrypt",
+"Requests",
+"SQLAlchemy",
+"psycopg2-binary"
+
+]

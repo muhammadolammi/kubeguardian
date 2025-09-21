@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: publisher-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: read-resources
+rules:
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "persistentvolumes", "persistentvolumeclaims", "nodes", "ingresses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: publisher-read-resources
+subjects:
+- kind: ServiceAccount
+  name: publisher-sa
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: read-resources
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: publisher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: publisher
+  template:
+    metadata:
+      labels:
+        app: publisher
+    spec:
+      serviceAccountName: publisher-sa
+      containers:
+      - name: publisher
+        image: muhammadolammi/kubeguardian-pub
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+        ports:
+        - containerPort: 8082
+        env:
+        - name: RABBITMQ_URL
+          valueFrom:
+            secretKeyRef:
+              name: kubeguardian-secrets
+              key: RABBITMQ_URL
+        - name: AUTHORIZED_NAMESPACE
+          value: bank-of-anthos
