@@ -21,7 +21,7 @@ const Alerts: React.FC<AlertsProps> = ({ onLogout }) => {
                 setIsLoading(true);
 
                 // check auth
-                const userRes = await fetch(`${BACKEND_URL}/me`, {
+                const userRes = await fetch(`${BACKEND_URL}me`, {
                     credentials: "include",
                 });
                 if (!userRes.ok) {
@@ -32,7 +32,7 @@ const Alerts: React.FC<AlertsProps> = ({ onLogout }) => {
                 setUser(userData);
 
                 // fetch alerts
-                const res = await fetch(`${BACKEND_URL}/custom-alerts`, {
+                const res = await fetch(`${BACKEND_URL}custom-alerts`, {
                     credentials: "include",
                 });
                 if (!res.ok) throw new Error("Failed to fetch alerts");
@@ -57,7 +57,7 @@ const Alerts: React.FC<AlertsProps> = ({ onLogout }) => {
 
     const handleLogout = async () => {
         try {
-            await fetch(`${BACKEND_URL}/logout`, {
+            await fetch(`${BACKEND_URL}logout`, {
                 method: "POST",
                 credentials: "include",
             });

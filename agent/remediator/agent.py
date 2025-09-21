@@ -10,10 +10,6 @@ from google.adk.agents import Agent
 namespace= get_ENV("AUTHORIZED_NAMESPACE")
 
 
-
-
-
-
 descriptor_agent= Agent(
         name="remediator_agent",
         model="gemini-2.0-flash",

@@ -88,11 +88,11 @@ spec:
             timeoutSeconds: 10
           resources:
             limits:
-              cpu: 250m
+              cpu: 150m
               ephemeral-storage: 0.25Gi
               memory: 128Mi
             requests:
-              cpu: 100m
+              cpu: 50m
               ephemeral-storage: 0.25Gi
               memory: 64Mi
           securityContext:

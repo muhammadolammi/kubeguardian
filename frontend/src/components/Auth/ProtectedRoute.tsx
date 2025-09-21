@@ -7,7 +7,7 @@ import { BACKEND_URL } from "../../const"
 
 const getCurrentUser = async (): Promise<User | null> => {
     try {
-        const res = await fetch(`${BACKEND_URL}/me`, { credentials: "include" });
+        const res = await fetch(`${BACKEND_URL}me`, { credentials: "include" });
         if (!res.ok) return null;
         return await res.json();
     } catch {

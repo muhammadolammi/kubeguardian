@@ -153,8 +153,10 @@ def remediator_prompt(namespace: str) -> str:
         "4. When a deployment is deleted, immediately check manifests and reapply it. All deployments must remain up 24/7.\n"
         "5. If everything is fine in namespace, just return this string \"bank-of-anthos in desired state\"\n"
         "---\n\n"
+        
 
         "Begin the remediation process now.\n"
+        "DO NOT SEND FINAL RESPONSE UNTILL REMEDIATION IS DONE, FINAL RESPONSE SHOULD BE SENT ONLY WHEN YOU ARE DONE...!!!"
     )
 
 

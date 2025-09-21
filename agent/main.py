@@ -7,6 +7,9 @@ import jwt
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta, timezone
 from fastapi import Response, Request, FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 
 from helpers import AlertDB,AuthDBHelper
 
@@ -40,7 +43,7 @@ class LoginRequest(BaseModel):
 AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Example session service URI (e.g., SQLite)
 # Example allowed origins for CORS
-ALLOWED_ORIGINS = ["http://localhost", "http://localhost:8080", "*"]
+ALLOWED_ORIGINS = ["http://localhost", "http://localhost:8080", "http://localhost:8081", "http://ai-agent:8081"]
 # Set web=True if you intend to serve a web interface, False otherwise
 SERVE_WEB_INTERFACE = False
 
@@ -52,11 +55,13 @@ app: FastAPI = get_fast_api_app(
     allow_origins=ALLOWED_ORIGINS,
     web=SERVE_WEB_INTERFACE,
 )
+app.mount("/static", StaticFiles(directory="build/static"), name="static")
 
 
 @app.post("/register")
 async def register(req: RegRequest):
     try:
+
         user_id = authdb_helper.create_user(user_name=req.username, email=req.email,password=req.password)
         logger.info("user created succesfully. user_id{user_id}")
         return f"user created succesfully. user_id{user_id}"
@@ -128,7 +133,10 @@ async def me(req: Request):
         return JSONResponse(content={"error": "Token expired"}, status_code=401)
     except jwt.InvalidTokenError:
         return JSONResponse(content={"error": "Unauthorized"}, status_code=401)
-
+# Catch-all route: return index.html for React Router
+@app.get("/{full_path:path}")
+def serve_react_app(full_path: str):
+    return FileResponse("build/index.html")
 if __name__ == "__main__":
-    # Use the PORT environment variable provided by Cloud Run, defaulting to 8081
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8081))) 
+    # Use the PORT environment variable provided by Cloud Run, defaulting to 80
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 80))) 

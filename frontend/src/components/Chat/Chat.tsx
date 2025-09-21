@@ -64,7 +64,7 @@ const Chat: React.FC<ChatProps> = ({ onLogout }) => {
 
     const getCurrentUser = async (): Promise<User | null> => {
         try {
-            const res = await fetch(`${BACKEND_URL}/me`, { credentials: "include" });
+            const res = await fetch(`${BACKEND_URL}me`, { credentials: "include" });
             if (!res.ok) return null;
             return await res.json();
         } catch {
@@ -74,7 +74,7 @@ const Chat: React.FC<ChatProps> = ({ onLogout }) => {
 
     const fetchSessions = async (userId: string): Promise<Session[]> => {
         try {
-            const res = await fetch(`${BACKEND_URL}/apps/${APP_NAME}/users/${userId}/sessions`, {
+            const res = await fetch(`${BACKEND_URL}apps/${APP_NAME}/users/${userId}/sessions`, {
                 credentials: "include"
             });
             const apiSessions: ApiSession[] = await res.json();
@@ -92,7 +92,7 @@ const Chat: React.FC<ChatProps> = ({ onLogout }) => {
 
     const getSession = async (userId: string, sessionId: string): Promise<Session> => {
         try {
-            const res = await fetch(`${BACKEND_URL}/apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
+            const res = await fetch(`${BACKEND_URL}apps/${APP_NAME}/users/${userId}/sessions/${sessionId}`, {
                 credentials: "include"
             });
             const apiSession: ApiSession = await res.json();
@@ -108,7 +108,7 @@ const Chat: React.FC<ChatProps> = ({ onLogout }) => {
     const createSession = async (userId: string): Promise<Session> => {
         try {
 
-            const res = await fetch(`${BACKEND_URL}/apps/${APP_NAME}/users/${userId}/sessions`, {
+            const res = await fetch(`${BACKEND_URL}apps/${APP_NAME}/users/${userId}/sessions`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -129,7 +129,7 @@ const Chat: React.FC<ChatProps> = ({ onLogout }) => {
     // In your Chat component
     const sendMessage = async (userId: string, sessionId: string, message: string): Promise<Session> => {
         try {
-            const res = await fetch(`${BACKEND_URL}/run`, {
+            const res = await fetch(`${BACKEND_URL}run`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -255,7 +255,7 @@ const Chat: React.FC<ChatProps> = ({ onLogout }) => {
 
     const handleLogout = async () => {
         try {
-            await fetch(`${BACKEND_URL}/logout`, {
+            await fetch(`${BACKEND_URL}logout`, {
                 method: "POST",
                 credentials: "include"
             });
@@ -269,7 +269,7 @@ const Chat: React.FC<ChatProps> = ({ onLogout }) => {
         if (!user) return;
 
         try {
-            await fetch(`${BACKEND_URL}/apps/${APP_NAME}/users/${user.id}/sessions/${sessionId}`, {
+            await fetch(`${BACKEND_URL}apps/${APP_NAME}/users/${user.id}/sessions/${sessionId}`, {
                 method: "DELETE",
                 credentials: "include"
             });

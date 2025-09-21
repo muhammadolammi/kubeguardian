@@ -15,11 +15,11 @@ metadata:
   namespace: bank-of-anthos
 rules:
   - apiGroups: [""]
-    resources: ["pods", "services", "configmaps", "secrets", "events"]
+    resources: ["pods", "services", "configmaps", "secrets", "events", "pods/log"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["apps"]
     resources: ["deployments", "replicasets", "statefulsets"]
-    verbs: ["get", "list", "watch", "update", "patch"]
+    verbs: ["get", "list", "watch", "update", "patch", "create"]
   - apiGroups: [""]
     resources: ["pods/exec"]
     verbs: ["create"]
@@ -63,7 +63,6 @@ spec:
       containers:
         - name: kubectl-ai
           image: muhammadolammi/kubeguardian-kubectl-ai
-          imagePullPolicy: IfNotPresent
           args:
             - "--mcp-server"
             - "--mcp-server-mode=sse"
@@ -71,10 +70,10 @@ spec:
             - "-v=2"
           resources:
             requests:
-              cpu: "200m"
+              cpu: "50m"
               memory: "512Mi"
             limits:
-              cpu: "500m"
+              cpu: "200m"
               memory: "1Gi"
           ports:
             - containerPort: 8085
@@ -84,6 +83,7 @@ spec:
                 secretKeyRef:
                   name: kubeguardian-secrets
                   key: GEMINI_API_KEY
+            
 
 ---
 

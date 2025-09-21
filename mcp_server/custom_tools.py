@@ -10,10 +10,6 @@ alertdb = AlertDB(db_url=DB_URL, crypt_key=CRYPT_KEY)
 
 
 
-
-
-
-
 async def get_all_manifests(n:str) -> str:
     """
     List all manifest files available in the manifests directory. Shows file size and whether it's a directory.

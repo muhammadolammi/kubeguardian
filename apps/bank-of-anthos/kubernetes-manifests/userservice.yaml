@@ -99,7 +99,7 @@ spec:
               ephemeral-storage: 0.25Gi
               memory: 256Mi
             requests:
-              cpu: 260m
+              cpu: 50m
               ephemeral-storage: 0.25Gi
               memory: 128Mi
           securityContext:

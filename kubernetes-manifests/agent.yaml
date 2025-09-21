@@ -16,18 +16,20 @@ spec:
     spec:
       containers:
       - name: agent
-        image:  muhammadolammi/kubeguardian-agent
+        image:  muhammadolammi/kubeguardian-agent:v2
+        imagePullPolicy: Always
         resources:
           requests:
-            cpu: "500m"
+            cpu: "50m"
             memory: "256Mi"
           limits:
             cpu: "1"
             memory: "1Gi" 
 
         ports: 
-          - containerPort: 8081 
+          - containerPort: 80
         env:
+
           - name: KUBECTL_AI_MCP_SERVER
             valueFrom:
               secretKeyRef:
@@ -45,7 +47,7 @@ spec:
                 name: kubeguardian-secrets
                 key: GEMINI_API_KEY
           - name: AUTHORIZED_DIRECTORY
-            value: /app/apps/bank-of-anthos/kubernetes-manifests
+            value: /app/kubernetes-manifests
           - name: AUTHORIZED_NAMESPACE
             value: bank-of-anthos 
           - name: MCP_SERVER
@@ -72,29 +74,8 @@ spec:
     app: agent
   ports:
     - protocol: TCP
-      port: 8081
-      targetPort: 8081
+      port: 80
+      targetPort: 80
   type: ClusterIP
 
 
-
-import httpx
-import asyncio
-
-async def test_sse():
-    url = "http://mcp-server:8086/mcp"
-    try:
-        async with httpx.AsyncClient(timeout=None) as client:
-            async with client.stream("GET", url) as response:
-                print("Status:", response.status_code)
-                # Read first few lines from the stream
-                async for line in response.aiter_lines():
-                    if line.strip() == "":
-                        continue
-                    print("Received:", line)
-                    # Stop after first few events for testing
-                    break
-    except Exception as e:
-        print("Error:", e)
-
-asyncio.run(test_sse())
