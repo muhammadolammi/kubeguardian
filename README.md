@@ -17,13 +17,13 @@ This project was built for the GKE Hackathon.
 
 | Service          | Language | Description                                                                  |
 | ---------------- | -------- | ---------------------------------------------------------------------------- |
-| Frontend         | React    | Web UI for users to chat with the Chat Agent and view alerts.                |
-| Chat Agent       | Python   | Exposes HTTP API for handling user requests and cluster actions.             |
-| Remediator Agent | Python   | Background agent that consumes events and remediates issues.                 |
+| Frontend         | Static HTML    | Web UI for users to chat with the Chat Agent and view alerts.                |
+| Agent       | Python   | Exposes HTTP API for handling user requests(custom endpoints) and agent calls(adk default endpoints).             |
+                
 | Publisher        | Python   | Watches Kubernetes events and publishes them into RabbitMQ.                  |
 | Subscriber       | Python   | Consumes events from RabbitMQ and forwards to the Remediator Agent.          |
 | MCP Server       | Python   | Exposes custom tools via the Model Context Protocol (MCP).                   |
-| kubectl-ai       | Python   | MCP server exposing kubectl functions for cluster operations.                |
+| kubectl-ai       | kubectl-ai   | MCP server exposing kubectl functions for cluster operations.                |
 | PostgreSQL       | SQL      | Stores user accounts and session data.                                       |
 | RabbitMQ         | Broker   | Message queue for event-driven communication between Publisher & Subscriber. |
 
@@ -45,7 +45,7 @@ This project was built for the GKE Hackathon.
 
    ```sh
    git clone https://github.com/muhammadolammi/kubeguardian
-   cd bank-of-anthos/
+   cd kubeguardian/
    ```
 
 3. Set the Google Cloud project and region and ensure the Google Kubernetes Engine API is enabled.
@@ -108,9 +108,8 @@ Visit the external IP/URL in your browser.
 
 A \~3-minute demo video showcases:
 
-1. Deploying Kubeguardian on GKE
-2. Triggering a simulated issue → automated remediation by the Remediator Agent
-3. Chatting with the Chat Agent to take manual actions
+1. Triggering a simulated issue → automated remediation by the Remediator Agent
+2. Chatting with the Chat Agent to take manual actions
 
 👉 [Demo Video Link](https://youtu.be/gdVGPySZXkE)
 
