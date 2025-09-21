@@ -15,19 +15,17 @@ This project was built for the GKE Hackathon.
 
 ## 🍷 Service Architecture
 
-| Service          | Language | Description                                                                  |
-| ---------------- | -------- | ---------------------------------------------------------------------------- |
-| Frontend         | Static HTML    | Web UI for users to chat with the Chat Agent and view alerts.                |
-| Agent       | Python   | Exposes HTTP API for handling user requests(custom endpoints) and agent calls(adk default endpoints).
-            |
-                
-| Publisher        | Python   | Watches Kubernetes events and publishes them into RabbitMQ.
-        |
-| Subscriber       | Python   | Consumes events from RabbitMQ and forwards to the Remediator Agent.          |
-| MCP Server       | Python   | Exposes custom tools via the Model Context Protocol (MCP).                   |
-| kubectl-ai       | kubectl-ai   | MCP server exposing kubectl functions for cluster operations.                |
-| PostgreSQL       | SQL      | Stores user accounts and session data.                                       |
-| RabbitMQ         | Broker   | Message queue for event-driven communication between Publisher & Subscriber. |
+| Service      | Language     | Description                                                                 |
+| ------------ | ----------- | --------------------------------------------------------------------------- |
+| Frontend     | Static HTML | Web UI for users to chat with the Chat Agent and view alerts.               |
+| Agent        | Python      | Exposes HTTP API for handling user requests (custom endpoints) and agent calls (ADK default endpoints). |
+| Publisher    | Python      | Watches Kubernetes events and publishes them into RabbitMQ.                 |
+| Subscriber   | Python      | Consumes events from RabbitMQ and forwards to the Remediator Agent.         |
+| MCP Server   | Python      | Exposes custom tools via the Model Context Protocol (MCP).                  |
+| kubectl-ai   | kubectl-ai  | MCP server exposing kubectl functions for cluster operations.               |
+| PostgreSQL   | SQL         | Stores user accounts and session data.                                      |
+| RabbitMQ     | Broker      | Message queue for event-driven communication between Publisher & Subscriber.|
+
 
 ## ⚡ Quickstart (Kubernetes)
 
