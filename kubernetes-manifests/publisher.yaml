@@ -47,7 +47,14 @@ spec:
       labels:
         app: publisher
     spec:
-      serviceAccountName: publisher-sa
+      serviceAccountName: publisher-sa 
+      tolerations:
+        - key: "cloud.google.com/gke-preemptible"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      nodeSelector:
+        cloud.google.com/gke-preemptible: "true"
       containers:
       - name: publisher
         image: muhammadolammi/kubeguardian-pub

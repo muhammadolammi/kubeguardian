@@ -60,6 +60,13 @@ spec:
         app: kubectl-ai
     spec:
       serviceAccountName: kubectl-ai-sa
+      tolerations:
+        - key: "cloud.google.com/gke-preemptible"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      nodeSelector:
+        cloud.google.com/gke-preemptible: "true"
       containers:
         - name: kubectl-ai
           image: muhammadolammi/kubeguardian-kubectl-ai

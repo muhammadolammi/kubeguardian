@@ -85,7 +85,6 @@ async def login(req: LoginRequest, response: Response):
         "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXP_DELTA_MINUTES)
     }
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-   #TODO set secure to true
     response.set_cookie(
         key="jwt_token",
         value=token,
